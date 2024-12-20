@@ -58,7 +58,7 @@ export class TransactionalEventEmitter {
     databaseDriver.persist(inboxOutboxTransportEvent);
     await databaseDriver.flush();
 
-    return this.inboxOutboxEventProcessor.process(eventOptions, inboxOutboxTransportEvent, this.getListeners(event.name));
+    this.inboxOutboxEventProcessor.process(eventOptions, inboxOutboxTransportEvent, this.getListeners(event.name));
   }
 
   addListener<TPayload>(eventName: string, listener: IListener<TPayload>): void {
