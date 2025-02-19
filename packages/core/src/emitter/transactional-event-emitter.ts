@@ -7,6 +7,7 @@ import { ListenerDuplicateNameException } from '../listener/exception/listener-d
 import { INBOX_OUTBOX_EVENT_PROCESSOR_TOKEN, InboxOutboxEventProcessorContract } from '../processor/inbox-outbox-event-processor.contract';
 import { EVENT_CONFIGURATION_RESOLVER_TOKEN, EventConfigurationResolverContract } from '../resolver/event-configuration-resolver.contract';
 import { InboxOutboxEvent } from './contract/inbox-outbox-event.interface';
+import { DatabaseDriverPersister } from '../driver/database.driver-persister';
 
 export enum TransactionalEventEmitterOperations {
   persist = 'persist',
@@ -30,23 +31,7 @@ export class TransactionalEventEmitter {
       operation: TransactionalEventEmitterOperations;
       entity: any;
     }[],
-  ): Promise<void>;
-  async emit(
-    event: InboxOutboxEvent,
-    entities: {
-      operation: TransactionalEventEmitterOperations;
-      entity: any;
-    }[],
-    databaseDriver: DatabaseDriver,
-  ): Promise<void>;
-
-  async emit(
-    event: InboxOutboxEvent,
-    entities: {
-      operation: TransactionalEventEmitterOperations;
-      entity: any;
-    }[],
-    databaseDriver?: DatabaseDriver,
+    customDatabaseDriverPersister?: DatabaseDriverPersister,
   ): Promise<void> {
     const eventOptions: InboxOutboxModuleEventOptions = this.options.events.find((optionEvent) => optionEvent.name === event.name);
 
@@ -54,26 +39,24 @@ export class TransactionalEventEmitter {
       throw new Error(`Event ${event.name} is not configured. Did you forget to add it to the module options?`);
     }
 
-    if (!databaseDriver) {
-      databaseDriver = this.databaseDriverFactory.create(this.eventConfigurationResolver);
-    }
+    const databaseDriver = this.databaseDriverFactory.create(this.eventConfigurationResolver);
     const currentTimestamp = new Date().getTime();
 
-    const inboxOutboxTransportEvent = this.databaseDriverFactory
-      .create(this.eventConfigurationResolver)
-      .createInboxOutboxTransportEvent(event.name, event, currentTimestamp + eventOptions.listeners.expiresAtTTL, currentTimestamp + eventOptions.listeners.readyToRetryAfterTTL);
+    const inboxOutboxTransportEvent = databaseDriver.createInboxOutboxTransportEvent(event.name, event, currentTimestamp + eventOptions.listeners.expiresAtTTL, currentTimestamp + eventOptions.listeners.readyToRetryAfterTTL);
+
+    const persister = customDatabaseDriverPersister || databaseDriver;
 
     entities.forEach((entity) => {
-      if (entity.operation === 'persist') {
-        databaseDriver.persist(entity.entity);
+      if (entity.operation === TransactionalEventEmitterOperations.persist) {
+        persister.persist(entity.entity);
       }
-      if (entity.operation === 'remove') {
-        databaseDriver.remove(entity.entity);
+      if (entity.operation === TransactionalEventEmitterOperations.remove) {
+        persister.remove(entity.entity);
       }
     });
 
-    databaseDriver.persist(inboxOutboxTransportEvent);
-    await databaseDriver.flush();
+    persister.persist(inboxOutboxTransportEvent);
+    await persister.flush();
 
     this.inboxOutboxEventProcessor.process(eventOptions, inboxOutboxTransportEvent, this.getListeners(event.name));
   }
