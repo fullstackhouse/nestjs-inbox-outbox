@@ -127,7 +127,35 @@ The module uses a `TransactionalEventEmitter` for reliable event emission. This 
     }]
   );
   ```
-- **Event Contract:** Ensure that your event classes implement the `InboxOutboxEvent` interface for consistency and clarity.
+
+### Synchronous vs Asynchronous Emission
+
+The `TransactionalEventEmitter` provides two methods for emitting events:
+
+- **emit:**
+  - Fires the event and attempts immediate delivery to listeners, but does **not** wait for listeners to finish execution.
+  - Use this when you want to trigger event delivery and continue your logic without waiting for listeners to complete.
+
+- **emitAsync:**
+  - Fires the event and **waits for all listeners to finish execution** before resolving.
+  - Use this when you need to ensure that all listeners have processed the event before proceeding (e.g., for transactional workflows or when listener side effects are required before continuing).
+
+**Example:**
+```typescript
+// Wait for all listeners to finish processing the event
+await this.transactionalEventEmitter.emitAsync(
+  new UserApplicationAssignedEvent(user.token, application.token, userApplication.token),
+  [{
+    entity: userApplication,
+    operation: TransactionalEventEmitterOperations.persist,
+  }]
+);
+```
+
+> **Note:** Use `emitAsync` if you need to wait for listeners to execute and complete before moving on. Use `emit` if you want to fire-and-forget the event delivery.
+
+### Event Contract:
+Ensure that your event classes implement the `InboxOutboxEvent` interface for consistency and clarity.
 
 ### Module Registration
 
