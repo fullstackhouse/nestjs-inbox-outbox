@@ -107,7 +107,7 @@ describe('@Transactional() decorator integration', () => {
       };
       emitter.addListener('OrderCreated', listener);
 
-      const em = orm.em.fork();
+      const em = orm.em.fork({ useContext: true });
       const order = new Order();
       order.customerEmail = 'transactional@example.com';
       order.total = 100;
@@ -139,7 +139,7 @@ describe('@Transactional() decorator integration', () => {
       };
       emitter.addListener('OrderCreated', listener);
 
-      const em = orm.em.fork();
+      const em = orm.em.fork({ useContext: true });
 
       await expect(
         em.transactional(async () => {
@@ -175,7 +175,7 @@ describe('@Transactional() decorator integration', () => {
       };
       emitter.addListener('OrderCreated', listener);
 
-      const em = orm.em.fork();
+      const em = orm.em.fork({ useContext: true });
 
       await em.transactional(async () => {
         const order1 = new Order();
@@ -212,7 +212,7 @@ describe('@Transactional() decorator integration', () => {
       };
       emitter.addListener('OrderCreated', listener);
 
-      const em = orm.em.fork();
+      const em = orm.em.fork({ useContext: true });
       let orderRef: Order | null = null;
 
       await em.transactional(async () => {
@@ -241,7 +241,7 @@ describe('@Transactional() decorator integration', () => {
       });
     });
 
-    it('should use forked EntityManager (isolated transaction)', async () => {
+    it('should rollback event when user transaction rolls back (default fork behavior)', async () => {
       const emitter = context.module.get(TransactionalEventEmitter);
       const orm = context.orm;
 
@@ -271,7 +271,7 @@ describe('@Transactional() decorator integration', () => {
       expect(orders).toHaveLength(0);
 
       const transportEvents = await checkEm.find(MikroOrmInboxOutboxTransportEvent, {});
-      expect(transportEvents).toHaveLength(1);
+      expect(transportEvents).toHaveLength(0);
     });
   });
 });
