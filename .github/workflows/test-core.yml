@@ -4,9 +4,15 @@ on:
   push:
     paths:
       - 'packages/core/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/test-core.yml'
   pull_request:
     paths:
       - 'packages/core/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/test-core.yml'
 
 jobs:
   test:
