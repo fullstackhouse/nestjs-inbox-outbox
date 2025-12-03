@@ -52,7 +52,7 @@ describe('MikroOrmInboxOutboxTransportEvent', () => {
       expect(event.eventPayload).toEqual(eventPayload);
       expect(event.expireAt).toBe(expireAt);
       expect(event.readyToRetryAfter).toBe(readyToRetryAfter);
-      expect(event.delivedToListeners).toEqual([]);
+      expect(event.deliveredToListeners).toEqual([]);
       expect(event.insertedAt).toBeDefined();
       expect(event.insertedAt).toBeLessThanOrEqual(Date.now());
     });
@@ -88,7 +88,7 @@ describe('MikroOrmInboxOutboxTransportEvent', () => {
       expect(retrieved).toBeDefined();
       expect(retrieved!.eventName).toBe('PersistenceTest');
       expect(retrieved!.eventPayload).toEqual(eventPayload);
-      expect(retrieved!.delivedToListeners).toEqual([]);
+      expect(retrieved!.deliveredToListeners).toEqual([]);
     });
 
     it('should persist JSON payload correctly', async () => {
@@ -116,14 +116,14 @@ describe('MikroOrmInboxOutboxTransportEvent', () => {
       expect(retrieved!.eventPayload).toEqual(complexPayload);
     });
 
-    it('should persist delivedToListeners as JSON array', async () => {
+    it('should persist deliveredToListeners as JSON array', async () => {
       const event = new MikroOrmInboxOutboxTransportEvent().create(
         'ListenersTest',
         {},
         Date.now() + 60000,
         Date.now() + 5000,
       );
-      event.delivedToListeners = ['listener1', 'listener2'];
+      event.deliveredToListeners = ['listener1', 'listener2'];
 
       orm.em.persist(event);
       await orm.em.flush();
@@ -131,7 +131,7 @@ describe('MikroOrmInboxOutboxTransportEvent', () => {
 
       const retrieved = await orm.em.findOne(MikroOrmInboxOutboxTransportEvent, { eventName: 'ListenersTest' });
 
-      expect(retrieved!.delivedToListeners).toEqual(['listener1', 'listener2']);
+      expect(retrieved!.deliveredToListeners).toEqual(['listener1', 'listener2']);
     });
 
     it('should generate auto-increment id on persist', async () => {
