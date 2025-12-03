@@ -45,38 +45,29 @@ export class InboxOutboxEventProcessor implements InboxOutboxEventProcessorContr
     return databaseDriver.flush();
   }
 
-  private executeListenerWithTimeout(
+  private async executeListenerWithTimeout(
     listener: IListener<any>,
     inboxOutboxTransportEvent: InboxOutboxTransportEvent,
     eventOptions: InboxOutboxModuleEventOptions,
-  ): Promise<{ listenerName: string, hasFailed: boolean }> {
-    return new Promise(async (resolve, reject) => {
-      let timeoutTimer: NodeJS.Timeout;
+  ): Promise<{ listenerName: string; hasFailed: boolean }> {
+    const listenerName = listener.getName();
 
-      try {
-        timeoutTimer = setTimeout(() => {
-          this.logger.error(`Listener ${listener.getName()} has been timed out`);
-          resolve({
-            listenerName: listener.getName(),
-            hasFailed: true,
-          });
-        }, eventOptions.listeners.maxExecutionTimeTTL);
-
-        await listener.handle(inboxOutboxTransportEvent.eventPayload, inboxOutboxTransportEvent.eventName);
-        clearTimeout(timeoutTimer);
-
-        resolve({
-          listenerName: listener.getName(),
-          hasFailed: false,
-        });
-      } catch (exception) {
-        clearTimeout(timeoutTimer);
-        this.logger.error(exception);
-        resolve({
-          listenerName: listener.getName(),
-          hasFailed: true,
-        });
-      }
+    const timeoutPromise = new Promise<{ listenerName: string; hasFailed: true }>((resolve) => {
+      setTimeout(() => {
+        this.logger.error(`Listener ${listenerName} has been timed out`);
+        resolve({ listenerName, hasFailed: true });
+      }, eventOptions.listeners.maxExecutionTimeTTL);
     });
+
+    const listenerPromise = Promise.resolve(
+      listener.handle(inboxOutboxTransportEvent.eventPayload, inboxOutboxTransportEvent.eventName),
+    )
+      .then(() => ({ listenerName, hasFailed: false as const }))
+      .catch((exception) => {
+        this.logger.error(exception);
+        return { listenerName, hasFailed: true as const };
+      });
+
+    return Promise.race([listenerPromise, timeoutPromise]);
   }
 }
