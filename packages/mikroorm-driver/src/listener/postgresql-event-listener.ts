@@ -1,4 +1,5 @@
 import { MikroORM } from '@mikro-orm/core';
+import { Logger } from '@nestjs/common';
 import { EventListener } from '@nestixis/nestjs-inbox-outbox';
 import { Client, Notification } from 'pg';
 import { Observable, Subject } from 'rxjs';
@@ -6,6 +7,7 @@ import { Observable, Subject } from 'rxjs';
 export const POSTGRESQL_EVENT_CHANNEL = 'inbox_outbox_event';
 
 export class PostgreSQLEventListener implements EventListener {
+  private readonly logger = new Logger(PostgreSQLEventListener.name);
   private client: Client | null = null;
   private eventsSubject = new Subject<string>();
   private reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -45,7 +47,7 @@ export class PostgreSQLEventListener implements EventListener {
       });
 
       this.client.on('error', (err: Error) => {
-        console.error('PostgreSQL event listener error:', err);
+        this.logger.error('PostgreSQL event listener error:', err);
         this.scheduleReconnect();
       });
 
@@ -93,7 +95,7 @@ export class PostgreSQLEventListener implements EventListener {
       try {
         await this.connect();
       } catch (error) {
-        console.error('PostgreSQL event listener reconnect failed:', error);
+        this.logger.error('PostgreSQL event listener reconnect failed:', error);
         this.scheduleReconnect();
       }
     }, this.reconnectDelayMs);
