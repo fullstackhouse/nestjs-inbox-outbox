@@ -153,6 +153,8 @@ await this.transactionalEventEmitter.emitAsync(
 ```
 
 > **Note:** Use `emitAsync` if you need to wait for listeners to execute and complete before moving on. Use `emit` if you want to fire-and-forget the event delivery.
+>
+> **Important:** The difference between `emit` and `emitAsync` only applies when `immediateProcessing` is `true` (the default). When `immediateProcessing` is `false`, both methods behave identically—they persist the event to the database and return immediately without triggering any listeners. In that case, all event processing happens later via the poller.
 
 ### Immediate vs Deferred Processing
 
