@@ -105,8 +105,9 @@ export class RetryableInboxOutboxEventPoller implements OnModuleInit, OnModuleDe
 
   private async processAsynchronousRetryableEvents(inboxOutboxTransportEvents: InboxOutboxTransportEvent[]) {
     const processingPromises = inboxOutboxTransportEvents.map((inboxOutboxTransportEvent) => {
+      const deliveredSet = new Set(inboxOutboxTransportEvent.deliveredToListeners);
       const notDeliveredToListeners = this.transactionalEventEmitter.getListeners(inboxOutboxTransportEvent.eventName).filter((listener) => {
-        return !inboxOutboxTransportEvent.deliveredToListeners.includes(listener.getName());
+        return !deliveredSet.has(listener.getName());
       });
 
       const processingPromise = this.inboxOutboxEventProcessor.process(
