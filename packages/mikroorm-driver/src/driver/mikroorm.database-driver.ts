@@ -46,4 +46,25 @@ export class MikroORMDatabaseDriver implements DatabaseDriver {
   createInboxOutboxTransportEvent(eventName: string, eventPayload: any, expireAt: number, readyToRetryAfter: number | null): InboxOutboxTransportEvent {
     return new MikroOrmInboxOutboxTransportEvent().create(eventName, eventPayload, expireAt, readyToRetryAfter);
   }
+
+  async deleteExpiredEvents(limit: number): Promise<number> {
+    let deletedCount = 0;
+
+    await this.em.transactional(async em => {
+      const now = Date.now();
+      const expiredEvents = await em.find(
+        MikroOrmInboxOutboxTransportEvent,
+        { expireAt: { $lte: now } },
+        { limit, lockMode: LockMode.PESSIMISTIC_WRITE },
+      );
+
+      if (expiredEvents.length > 0) {
+        expiredEvents.forEach(event => em.remove(event));
+        await em.flush();
+        deletedCount = expiredEvents.length;
+      }
+    });
+
+    return deletedCount;
+  }
 }

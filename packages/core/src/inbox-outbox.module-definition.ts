@@ -18,11 +18,18 @@ export interface InboxOutboxModuleEventOptions {
   immediateProcessing?: boolean;
 }
 
+export interface ExpiredEventCleanupOptions {
+  enabled: boolean;
+  intervalMilliseconds: number;
+  batchSize: number;
+}
+
 export interface InboxOutboxModuleOptions {
   events: InboxOutboxModuleEventOptions[];
   retryEveryMilliseconds: number;
   maxInboxOutboxTransportEventPerRetry: number;
   driverFactory: DatabaseDriverFactory;
+  expiredEventCleanup?: ExpiredEventCleanupOptions;
 }
 
 export const { ConfigurableModuleClass, MODULE_OPTIONS_TOKEN, ASYNC_OPTIONS_TYPE } = new ConfigurableModuleBuilder<InboxOutboxModuleOptions>()

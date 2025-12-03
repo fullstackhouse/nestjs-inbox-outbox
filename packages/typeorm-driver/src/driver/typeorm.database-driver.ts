@@ -58,4 +58,26 @@ export class TypeORMDatabaseDriver implements DatabaseDriver {
   createInboxOutboxTransportEvent(eventName: string, eventPayload: any, expireAt: number, readyToRetryAfter: number | null): InboxOutboxTransportEvent {
     return new TypeOrmInboxOutboxTransportEvent().create(eventName, eventPayload, expireAt, readyToRetryAfter);
   }
+
+  async deleteExpiredEvents(limit: number): Promise<number> {
+    let deletedCount = 0;
+
+    await this.dataSource.transaction(async transactionalEntityManager => {
+      const now = Date.now();
+      const expiredEvents = await transactionalEntityManager.find(TypeOrmInboxOutboxTransportEvent, {
+        where: {
+          expireAt: LessThanOrEqual(now),
+        },
+        take: limit,
+        lock: { mode: 'pessimistic_write' },
+      });
+
+      if (expiredEvents.length > 0) {
+        await transactionalEntityManager.remove(expiredEvents);
+        deletedCount = expiredEvents.length;
+      }
+    });
+
+    return deletedCount;
+  }
 }

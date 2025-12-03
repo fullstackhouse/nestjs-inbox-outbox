@@ -1,3 +1,4 @@
+export * from "./cleaner/expired-event.cleaner";
 export * from "./driver/database-driver.factory";
 export * from "./driver/database.driver";
 export * from "./emitter/contract/inbox-outbox-event.interface";

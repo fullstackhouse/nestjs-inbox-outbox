@@ -1,5 +1,6 @@
 import { DynamicModule, Logger, Module, Provider } from '@nestjs/common';
 import { DiscoveryModule } from '@nestjs/core';
+import { ExpiredEventCleaner } from './cleaner/expired-event.cleaner';
 import { DATABASE_DRIVER_FACTORY_TOKEN, DatabaseDriverFactory } from './driver/database-driver.factory';
 import { TransactionalEventEmitter } from './emitter/transactional-event-emitter';
 import { EventValidator } from './event-validator/event.validator';
@@ -31,6 +32,7 @@ import { EventConfigurationResolver } from './resolver/event-configuration.resol
     },
     TransactionalEventEmitter,
     RetryableInboxOutboxEventPoller,
+    ExpiredEventCleaner,
     ListenerDiscovery,
     EventConfigurationResolver,
     EventValidator,

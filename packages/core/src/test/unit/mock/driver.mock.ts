@@ -4,6 +4,7 @@ export const createMockedDriver = () => {
         remove: jest.fn(),
         flush: jest.fn(),
         createInboxOutboxTransportEvent: jest.fn(),
-        findAndExtendReadyToRetryEvents: jest.fn()
+        findAndExtendReadyToRetryEvents: jest.fn(),
+        deleteExpiredEvents: jest.fn()
     }
 }

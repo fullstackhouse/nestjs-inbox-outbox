@@ -286,4 +286,96 @@ describe('MikroORMDatabaseDriver', () => {
       expect(uniqueEventNames.size).toBe(allEventNames.length);
     });
   });
+
+  describe('deleteExpiredEvents', () => {
+    it('should delete expired events', async () => {
+      const setupEm = orm.em.fork();
+      const now = Date.now();
+
+      const expiredEvent = new MikroOrmInboxOutboxTransportEvent().create('ExpiredEvent', {}, now - 1000, now - 2000);
+      const validEvent = new MikroOrmInboxOutboxTransportEvent().create('ValidEvent', {}, now + 60000, now + 5000);
+
+      setupEm.persist([expiredEvent, validEvent]);
+      await setupEm.flush();
+
+      const em = orm.em.fork();
+      const driver = new MikroORMDatabaseDriver(em, createEventConfigResolver());
+
+      const deletedCount = await driver.deleteExpiredEvents(10);
+
+      expect(deletedCount).toBe(1);
+
+      const checkEm = orm.em.fork();
+      const remainingEvents = await checkEm.find(MikroOrmInboxOutboxTransportEvent, {});
+      expect(remainingEvents).toHaveLength(1);
+      expect(remainingEvents[0].eventName).toBe('ValidEvent');
+    });
+
+    it('should respect limit parameter', async () => {
+      const setupEm = orm.em.fork();
+      const now = Date.now();
+
+      const expiredEvents = Array.from({ length: 5 }, (_, i) =>
+        new MikroOrmInboxOutboxTransportEvent().create(`ExpiredEvent${i}`, {}, now - 1000, now - 2000)
+      );
+      setupEm.persist(expiredEvents);
+      await setupEm.flush();
+
+      const em = orm.em.fork();
+      const driver = new MikroORMDatabaseDriver(em, createEventConfigResolver());
+
+      const deletedCount = await driver.deleteExpiredEvents(3);
+
+      expect(deletedCount).toBe(3);
+
+      const checkEm = orm.em.fork();
+      const remainingEvents = await checkEm.find(MikroOrmInboxOutboxTransportEvent, {});
+      expect(remainingEvents).toHaveLength(2);
+    });
+
+    it('should return 0 when no expired events exist', async () => {
+      const setupEm = orm.em.fork();
+      const event = new MikroOrmInboxOutboxTransportEvent().create('FutureEvent', {}, Date.now() + 60000, Date.now() + 5000);
+      setupEm.persist(event);
+      await setupEm.flush();
+
+      const em = orm.em.fork();
+      const driver = new MikroORMDatabaseDriver(em, createEventConfigResolver());
+
+      const deletedCount = await driver.deleteExpiredEvents(10);
+
+      expect(deletedCount).toBe(0);
+
+      const checkEm = orm.em.fork();
+      const remainingEvents = await checkEm.find(MikroOrmInboxOutboxTransportEvent, {});
+      expect(remainingEvents).toHaveLength(1);
+    });
+
+    it('should use pessimistic locking for concurrent deletion', async () => {
+      const setupEm = orm.em.fork();
+      const now = Date.now();
+
+      const events = Array.from({ length: 10 }, (_, i) =>
+        new MikroOrmInboxOutboxTransportEvent().create(`ExpiredEvent${i}`, {}, now - 1000, now - 2000)
+      );
+      setupEm.persist(events);
+      await setupEm.flush();
+
+      const em1 = orm.em.fork();
+      const em2 = orm.em.fork();
+      const driver1 = new MikroORMDatabaseDriver(em1, createEventConfigResolver());
+      const driver2 = new MikroORMDatabaseDriver(em2, createEventConfigResolver());
+
+      const [count1, count2] = await Promise.all([
+        driver1.deleteExpiredEvents(5),
+        driver2.deleteExpiredEvents(5),
+      ]);
+
+      expect(count1 + count2).toBe(10);
+
+      const checkEm = orm.em.fork();
+      const remainingEvents = await checkEm.find(MikroOrmInboxOutboxTransportEvent, {});
+      expect(remainingEvents).toHaveLength(0);
+    });
+  });
 });

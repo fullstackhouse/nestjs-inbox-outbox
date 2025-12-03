@@ -191,6 +191,7 @@ Ensure that your event classes implement the `InboxOutboxEvent` interface for co
 - **retryEveryMilliseconds**: This is how often it will check for events that need to be retried
 - **maxInboxOutboxTransportEventPerRetry**: This is how many events it will retry at a time
 - **immediateProcessing** (optional, default: `true`): Whether to immediately process the event after saving to DB. When `true`, events are saved and immediately delivered to listeners. When `false`, events are only saved to DB and processed later by the poller (fire-and-forget pattern)
+- **expiredEventCleanup** (optional): Configuration for automatic cleanup of expired events
 
 #### Registration
 - Register the `InboxOutboxModule` within your application's bootstrap process, specifying global accessibility and event configurations.
@@ -221,6 +222,46 @@ Ensure that your event classes implement the `InboxOutboxEvent` interface for co
       inject: [DataSource],
     }),
   ```
+
+### Expired Event Cleanup
+
+Events have an `expireAt` timestamp based on the `expiresAtTTL` configuration. By default, expired events remain in the database. To automatically clean them up, enable the `expiredEventCleanup` option:
+
+```typescript
+InboxOutboxModule.registerAsync({
+  isGlobal: true,
+  imports: [...],
+  useFactory: (dataSource: DataSource) => {
+    return {
+      driverFactory: new TypeORMDatabaseDriverFactory(dataSource),
+      events: [...],
+      retryEveryMilliseconds: 30_000,
+      maxInboxOutboxTransportEventPerRetry: 10,
+      expiredEventCleanup: {
+        enabled: true,
+        intervalMilliseconds: 60_000, // Run cleanup every minute
+        batchSize: 100, // Delete up to 100 events per batch
+      },
+    };
+  },
+  inject: [DataSource],
+}),
+```
+
+#### Cleanup Options
+
+| Option | Description |
+|--------|-------------|
+| `enabled` | Whether the cleanup job is active |
+| `intervalMilliseconds` | How often the cleanup runs |
+| `batchSize` | Maximum events deleted per batch (avoids locking) |
+
+The cleanup job:
+- Runs periodically based on `intervalMilliseconds`
+- Deletes events where `expireAt < NOW()`
+- Uses batch deletion to avoid long-running transactions
+- Continues until all expired events are removed
+- Supports graceful shutdown (waits for in-flight cleanup)
 
 ### Currently supported drivers
 - [TypeORM](https://github.com/Nestixis/nestjs-inbox-outbox/tree/main/packages/typeorm-driver)
