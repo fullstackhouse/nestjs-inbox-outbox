@@ -2,11 +2,19 @@ name: Test Core Package
 
 on:
   push:
+    branches: [main]
     paths:
       - 'packages/core/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/test-core.yml'
   pull_request:
+    branches: [main]
     paths:
       - 'packages/core/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/test-core.yml'
 
 jobs:
   test:
