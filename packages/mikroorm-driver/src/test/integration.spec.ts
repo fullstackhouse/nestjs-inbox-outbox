@@ -450,7 +450,7 @@ describe('Integration Tests', () => {
 
       const event = new UserCreatedEvent(1, 'deferred@example.com');
 
-      await emitter.emitAsync(event, [{ operation: 'persist' as const, entity: user }]);
+      await emitter.emitAsync(event, [{ operation: TransactionalEventEmitterOperations.persist, entity: user }]);
 
       expect(handledEvents).toHaveLength(0);
 
@@ -503,7 +503,7 @@ describe('Integration Tests', () => {
 
       const event = new UserCreatedEvent(1, 'immediate@example.com');
 
-      await emitter.emitAsync(event, [{ operation: 'persist' as const, entity: user }]);
+      await emitter.emitAsync(event, [{ operation: TransactionalEventEmitterOperations.persist, entity: user }]);
 
       expect(handledEvents).toHaveLength(1);
       expect(handledEvents[0]).toMatchObject({
