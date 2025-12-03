@@ -8,26 +8,28 @@ export class MikroORMDatabaseDriver implements DatabaseDriver {
   }
 
   async findAndExtendReadyToRetryEvents(limit: number): Promise<InboxOutboxTransportEvent[]> {
-
     let events = [];
 
     await this.em.transactional(async em => {
-      const now = new Date();
-      events = await em.find(MikroOrmInboxOutboxTransportEvent, { readyToRetryAfter: { $lte: now.getTime() } }, {
-        limit,
-        lockMode: LockMode.PESSIMISTIC_WRITE,
-      });
+      const now = Date.now();
+      events = await em.find(
+        MikroOrmInboxOutboxTransportEvent,
+        {
+          readyToRetryAfter: { $lte: now },
+          expireAt: { $gt: now },
+        },
+        { limit, lockMode: LockMode.PESSIMISTIC_WRITE },
+      );
 
       events.forEach(event => {
         const eventConfig = this.eventConfigurationResolver.resolve(event.eventName);
-        event.readyToRetryAfter = new Date(now.getTime() + eventConfig.listeners.readyToRetryAfterTTL ).getTime();
+        event.readyToRetryAfter = now + eventConfig.listeners.readyToRetryAfterTTL;
       });
 
       await em.flush();
     });
-    
-    return events;
 
+    return events;
   }
 
   async persist<T extends Object>(entity: T): Promise<void> {

@@ -1,5 +1,5 @@
 import { DatabaseDriver, EventConfigurationResolverContract, InboxOutboxTransportEvent } from '@nestixis/nestjs-inbox-outbox';
-import { DataSource, LessThanOrEqual } from 'typeorm';
+import { DataSource, LessThanOrEqual, MoreThan, And } from 'typeorm';
 import { TypeOrmInboxOutboxTransportEvent } from '../model/typeorm-inbox-outbox-transport-event.model';
   
 export class TypeORMDatabaseDriver implements DatabaseDriver {
@@ -11,30 +11,29 @@ export class TypeORMDatabaseDriver implements DatabaseDriver {
   constructor(private readonly dataSource: DataSource, private readonly eventConfigurationResolver: EventConfigurationResolverContract) {}
 
   async findAndExtendReadyToRetryEvents(limit: number): Promise<InboxOutboxTransportEvent[]> {
-
     let events = [];
 
     await this.dataSource.transaction(async (transactionalEntityManager) => {
-      const now = new Date();
-      
+      const now = Date.now();
+
       events = await transactionalEntityManager.find(TypeOrmInboxOutboxTransportEvent, {
         where: {
-          readyToRetryAfter: LessThanOrEqual(now.getTime())
+          readyToRetryAfter: LessThanOrEqual(now),
+          expireAt: MoreThan(now),
         },
         take: limit,
-        lock: { mode: 'pessimistic_write' } // Lock mode for pessimistic write
+        lock: { mode: 'pessimistic_write' },
       });
-  
+
       events.forEach(event => {
         const eventConfig = this.eventConfigurationResolver.resolve(event.eventName);
-        event.readyToRetryAfter = new Date(now.getTime() + eventConfig.listeners.readyToRetryAfterTTL).getTime();
+        event.readyToRetryAfter = now + eventConfig.listeners.readyToRetryAfterTTL;
       });
-  
-      await transactionalEntityManager.save(events); 
-    });
-    
-    return events;
 
+      await transactionalEntityManager.save(events);
+    });
+
+    return events;
   }
 
   async persist<T extends Object>(entity: T): Promise<void> {
