@@ -4,10 +4,10 @@ import { Entity, PrimaryGeneratedColumn, Column, DataSource } from 'typeorm';
 import {
   TransactionalEventEmitter,
   TransactionalEventEmitterOperations,
-  InboxOutboxEvent,
+  OutboxEvent,
   IListener,
-} from '@nestixis/nestjs-inbox-outbox';
-import { TypeOrmInboxOutboxTransportEvent } from '../model/typeorm-inbox-outbox-transport-event.model';
+} from '@fullstackhouse/nestjs-outbox';
+import { TypeOrmOutboxTransportEvent } from '../model/typeorm-outbox-transport-event.model';
 import { createTestApp, cleanupTestApp, TestContext } from './test-utils';
 
 @Entity({ name: 'users' })
@@ -22,7 +22,7 @@ class User {
   name: string;
 }
 
-class UserCreatedEvent extends InboxOutboxEvent {
+class UserCreatedEvent extends OutboxEvent {
   public readonly name = 'UserCreated';
 
   constructor(
@@ -33,7 +33,7 @@ class UserCreatedEvent extends InboxOutboxEvent {
   }
 }
 
-class UserDeletedEvent extends InboxOutboxEvent {
+class UserDeletedEvent extends OutboxEvent {
   public readonly name = 'UserDeleted';
 
   constructor(public readonly userId: number) {
@@ -231,7 +231,7 @@ describe('Integration Tests', () => {
       expect(handledEvents).toHaveLength(1);
       expect(handledEvents[0].email).toBe('listener@example.com');
 
-      const transportEvents = await dataSource.getRepository(TypeOrmInboxOutboxTransportEvent).findBy({ eventName: 'UserCreated' });
+      const transportEvents = await dataSource.getRepository(TypeOrmOutboxTransportEvent).findBy({ eventName: 'UserCreated' });
       expect(transportEvents).toHaveLength(0);
     });
 
@@ -344,7 +344,7 @@ describe('Integration Tests', () => {
         ],
         additionalEntities: [User],
         retryEveryMilliseconds: 5000,
-        maxInboxOutboxTransportEventPerRetry: 10,
+        maxOutboxTransportEventPerRetry: 10,
       });
     });
 
@@ -369,7 +369,7 @@ describe('Integration Tests', () => {
 
       await emitter.emitAsync(event, [{ operation: TransactionalEventEmitterOperations.persist, entity: user }]);
 
-      const transportEvents = await dataSource.getRepository(TypeOrmInboxOutboxTransportEvent).findBy({ eventName: 'UserCreated' });
+      const transportEvents = await dataSource.getRepository(TypeOrmOutboxTransportEvent).findBy({ eventName: 'UserCreated' });
 
       expect(transportEvents).toHaveLength(1);
       expect(Number(transportEvents[0].readyToRetryAfter)).toBeGreaterThanOrEqual(beforeEmit + 100);
@@ -396,7 +396,7 @@ describe('Integration Tests', () => {
 
       await emitter.emitAsync(event, [{ operation: TransactionalEventEmitterOperations.persist, entity: user }]);
 
-      const transportEvents = await dataSource.getRepository(TypeOrmInboxOutboxTransportEvent).findBy({ eventName: 'UserCreated' });
+      const transportEvents = await dataSource.getRepository(TypeOrmOutboxTransportEvent).findBy({ eventName: 'UserCreated' });
 
       expect(transportEvents).toHaveLength(1);
       expect(Number(transportEvents[0].expireAt)).toBeGreaterThanOrEqual(beforeEmit + 60000);
@@ -419,7 +419,7 @@ describe('Integration Tests', () => {
         ],
         additionalEntities: [User],
         retryEveryMilliseconds: 100,
-        maxInboxOutboxTransportEventPerRetry: 10,
+        maxOutboxTransportEventPerRetry: 10,
       });
 
       const emitter = context.module.get(TransactionalEventEmitter);
@@ -444,7 +444,7 @@ describe('Integration Tests', () => {
 
       expect(handledEvents).toHaveLength(0);
 
-      const transportEvents = await dataSource.getRepository(TypeOrmInboxOutboxTransportEvent).findBy({ eventName: 'UserCreated' });
+      const transportEvents = await dataSource.getRepository(TypeOrmOutboxTransportEvent).findBy({ eventName: 'UserCreated' });
       expect(transportEvents).toHaveLength(1);
 
       await new Promise(resolve => setTimeout(resolve, 300));
@@ -472,7 +472,7 @@ describe('Integration Tests', () => {
         ],
         additionalEntities: [User],
         retryEveryMilliseconds: 10000,
-        maxInboxOutboxTransportEventPerRetry: 10,
+        maxOutboxTransportEventPerRetry: 10,
       });
 
       const emitter = context.module.get(TransactionalEventEmitter);

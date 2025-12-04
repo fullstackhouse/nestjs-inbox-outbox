@@ -1,8 +1,8 @@
-# NestJS Inbox Outbox MikroORM Driver
+# NestJS Outbox MikroORM Driver
 
-[![npm version](https://badge.fury.io/js/%40nestixis%2Fnestjs-inbox-outbox-mikroorm-driver.svg)](https://www.npmjs.com/package/@nestixis/nestjs-inbox-outbox-mikroorm-driver)
+[![npm version](https://badge.fury.io/js/%40fullstackhouse%2Fnestjs-outbox-mikroorm-driver.svg)](https://www.npmjs.com/package/@fullstackhouse/nestjs-outbox-mikroorm-driver)
 
-MikroORM driver for [@nestixis/nestjs-inbox-outbox](../core).
+MikroORM driver for [@fullstackhouse/nestjs-outbox](../core).
 
 ## Features
 
@@ -12,7 +12,7 @@ MikroORM driver for [@nestixis/nestjs-inbox-outbox](../core).
 ## Installation
 
 ```bash
-npm install @nestixis/nestjs-inbox-outbox-mikroorm-driver
+npm install @fullstackhouse/nestjs-outbox-mikroorm-driver
 ```
 
 ## Quick Start
@@ -22,12 +22,12 @@ import { MigrationObject, MikroORM } from '@mikro-orm/core';
 import { Migrator } from '@mikro-orm/migrations';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { PostgreSqlDriver } from '@mikro-orm/postgresql';
-import { InboxOutboxModule } from '@nestixis/nestjs-inbox-outbox';
+import { OutboxModule } from '@fullstackhouse/nestjs-outbox';
 import {
-  InboxOutboxMigrations,
+  OutboxMigrations,
   MikroORMDatabaseDriverFactory,
-  MikroOrmInboxOutboxTransportEvent,
-} from '@nestixis/nestjs-inbox-outbox-mikroorm-driver';
+  MikroOrmOutboxTransportEvent,
+} from '@fullstackhouse/nestjs-outbox-mikroorm-driver';
 import { Module, OnApplicationBootstrap } from '@nestjs/common';
 
 export class TableMigrator implements OnApplicationBootstrap {
@@ -43,27 +43,27 @@ const mapMigration = (migration): MigrationObject => ({
   class: migration,
 });
 
-const migrationList = InboxOutboxMigrations.map(mapMigration);
+const migrationList = OutboxMigrations.map(mapMigration);
 
 @Module({
   imports: [
     MikroOrmModule.forRootAsync({
       useFactory: () => ({
         host: 'localhost',
-        dbName: 'inbox_outbox',
+        dbName: 'outbox',
         user: 'user',
         password: 'user',
         port: 5432,
         migrations: {
           migrationsList: migrationList,
         },
-        entities: [MikroOrmInboxOutboxTransportEvent],
+        entities: [MikroOrmOutboxTransportEvent],
         driver: PostgreSqlDriver,
         extensions: [Migrator],
       }),
     }),
-    InboxOutboxModule.registerAsync({
-      imports: [MikroOrmModule.forFeature([MikroOrmInboxOutboxTransportEvent])],
+    OutboxModule.registerAsync({
+      imports: [MikroOrmModule.forFeature([MikroOrmOutboxTransportEvent])],
       useFactory: (orm: MikroORM) => ({
         driverFactory: new MikroORMDatabaseDriverFactory(orm),
         events: [
@@ -77,7 +77,7 @@ const migrationList = InboxOutboxMigrations.map(mapMigration);
           },
         ],
         retryEveryMilliseconds: 30_000,
-        maxInboxOutboxTransportEventPerRetry: 10,
+        maxOutboxTransportEventPerRetry: 10,
       }),
       inject: [MikroORM],
     }),
@@ -122,7 +122,7 @@ The `PostgreSQLEventListener`:
 - Uses PostgreSQL triggers to send notifications on event insert
 - Automatically reconnects on connection failures (configurable delay, default 5s)
 - Works alongside polling as a fallback mechanism
-- Requires the LISTEN/NOTIFY migration from `InboxOutboxMigrations`
+- Requires the LISTEN/NOTIFY migration from `OutboxMigrations`
 
 ## @Transactional() Decorator Support
 
@@ -130,7 +130,7 @@ The driver supports MikroORM's `@Transactional()` decorator via AsyncLocalStorag
 
 ```typescript
 // Module setup
-InboxOutboxModule.registerAsync({
+OutboxModule.registerAsync({
   imports: [MikroOrmModule],
   useFactory: (orm: MikroORM) => ({
     driverFactory: new MikroORMDatabaseDriverFactory(orm, {
@@ -138,7 +138,7 @@ InboxOutboxModule.registerAsync({
     }),
     events: [...],
     retryEveryMilliseconds: 30_000,
-    maxInboxOutboxTransportEventPerRetry: 10,
+    maxOutboxTransportEventPerRetry: 10,
   }),
   inject: [MikroORM],
 }),

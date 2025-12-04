@@ -1,10 +1,10 @@
-import { InboxOutboxTransportEvent } from '@nestixis/nestjs-inbox-outbox';
+import { OutboxTransportEvent } from '@fullstackhouse/nestjs-outbox';
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity({
-  name: 'inbox_outbox_transport_event',
+  name: 'outbox_transport_event',
 })
-export class TypeOrmInboxOutboxTransportEvent implements InboxOutboxTransportEvent {
+export class TypeOrmOutboxTransportEvent implements OutboxTransportEvent {
   @PrimaryGeneratedColumn()
   id: number; 
 
@@ -44,8 +44,8 @@ export class TypeOrmInboxOutboxTransportEvent implements InboxOutboxTransportEve
   })
   insertedAt: number;
 
-  create(eventName: string, eventPayload: any, expireAt: number, readyToRetryAfter: number | null): InboxOutboxTransportEvent {
-    const event = new TypeOrmInboxOutboxTransportEvent();
+  create(eventName: string, eventPayload: any, expireAt: number, readyToRetryAfter: number | null): OutboxTransportEvent {
+    const event = new TypeOrmOutboxTransportEvent();
     event.eventName = eventName;
     event.eventPayload = eventPayload;
     event.expireAt = expireAt;

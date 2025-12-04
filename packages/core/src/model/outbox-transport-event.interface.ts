@@ -1,4 +1,4 @@
-export interface InboxOutboxTransportEvent {
+export interface OutboxTransportEvent {
   id: number;
   eventName: string;
   eventPayload: any;

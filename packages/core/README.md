@@ -1,6 +1,6 @@
-# NestJS Inbox Outbox
+# NestJS Outbox
 
-[![npm version](https://badge.fury.io/js/%40nestixis%2Fnestjs-inbox-outbox.svg)](https://www.npmjs.com/package/@nestixis/nestjs-inbox-outbox)
+[![npm version](https://badge.fury.io/js/%40fullstackhouse%2Fnestjs-outbox.svg)](https://www.npmjs.com/package/@fullstackhouse/nestjs-outbox)
 
 A NestJS module implementing the [Transactional Outbox Pattern](https://microservices.io/patterns/data/transactional-outbox.html) for reliable event delivery in distributed systems. Ensures atomic database updates and event emissions, preventing data inconsistencies when services crash or networks fail.
 
@@ -18,8 +18,6 @@ A NestJS module implementing the [Transactional Outbox Pattern](https://microser
 ### Outbox Pattern
 ![outbox](https://github.com/user-attachments/assets/83fdb729-70dd-47f9-9449-cd40fe7ddd97)
 
-### Inbox Pattern
-![inbox](https://github.com/user-attachments/assets/fb67a80a-b963-4710-b0d7-a0c28c5fe6a7)
 
 ## Problems Solved
 
@@ -32,12 +30,12 @@ A NestJS module implementing the [Transactional Outbox Pattern](https://microser
 
 ```bash
 # Core package
-npm install @nestixis/nestjs-inbox-outbox
+npm install @fullstackhouse/nestjs-outbox
 
 # Choose your ORM driver
-npm install @nestixis/nestjs-inbox-outbox-typeorm-driver
+npm install @fullstackhouse/nestjs-outbox-typeorm-driver
 # or
-npm install @nestixis/nestjs-inbox-outbox-mikroorm-driver
+npm install @fullstackhouse/nestjs-outbox-mikroorm-driver
 ```
 
 ## Quick Start
@@ -45,9 +43,9 @@ npm install @nestixis/nestjs-inbox-outbox-mikroorm-driver
 ### 1. Define an Event
 
 ```typescript
-import { InboxOutboxEvent } from '@nestixis/nestjs-inbox-outbox';
+import { OutboxEvent } from '@fullstackhouse/nestjs-outbox';
 
-export class OrderCreatedEvent implements InboxOutboxEvent {
+export class OrderCreatedEvent implements OutboxEvent {
   public readonly name = OrderCreatedEvent.name;
 
   constructor(
@@ -60,7 +58,7 @@ export class OrderCreatedEvent implements InboxOutboxEvent {
 ### 2. Create a Listener
 
 ```typescript
-import { Listener, IListener } from '@nestixis/nestjs-inbox-outbox';
+import { Listener, IListener } from '@fullstackhouse/nestjs-outbox';
 
 @Listener(OrderCreatedEvent.name)
 export class SendOrderConfirmationListener implements IListener<OrderCreatedEvent> {
@@ -93,7 +91,7 @@ export class OrderNotificationListener
 import {
   TransactionalEventEmitter,
   TransactionalEventEmitterOperations
-} from '@nestixis/nestjs-inbox-outbox';
+} from '@fullstackhouse/nestjs-outbox';
 
 @Injectable()
 export class OrderService {
@@ -114,23 +112,23 @@ export class OrderService {
 ### 4. Register the Module
 
 ```typescript
-import { InboxOutboxModule } from '@nestixis/nestjs-inbox-outbox';
+import { OutboxModule } from '@fullstackhouse/nestjs-outbox';
 import {
   TypeORMDatabaseDriverFactory,
-  TypeOrmInboxOutboxTransportEvent,
-  InboxOutboxTransportEventMigrations,
-} from '@nestixis/nestjs-inbox-outbox-typeorm-driver';
+  TypeOrmOutboxTransportEvent,
+  OutboxTransportEventMigrations,
+} from '@fullstackhouse/nestjs-outbox-typeorm-driver';
 
 @Module({
   imports: [
     TypeOrmModule.forRoot({
       // ... your config
-      entities: [TypeOrmInboxOutboxTransportEvent],
-      migrations: [...InboxOutboxTransportEventMigrations],
+      entities: [TypeOrmOutboxTransportEvent],
+      migrations: [...OutboxTransportEventMigrations],
       migrationsRun: true,
     }),
-    InboxOutboxModule.registerAsync({
-      imports: [TypeOrmModule.forFeature([TypeOrmInboxOutboxTransportEvent])],
+    OutboxModule.registerAsync({
+      imports: [TypeOrmModule.forFeature([TypeOrmOutboxTransportEvent])],
       useFactory: (dataSource: DataSource) => ({
         driverFactory: new TypeORMDatabaseDriverFactory(dataSource),
         events: [
@@ -144,7 +142,7 @@ import {
           },
         ],
         retryEveryMilliseconds: 30_000,
-        maxInboxOutboxTransportEventPerRetry: 10,
+        maxOutboxTransportEventPerRetry: 10,
       }),
       inject: [DataSource],
     }),
@@ -172,7 +170,7 @@ export class AppModule {}
 | `driverFactory` | Database driver factory instance |
 | `events` | Array of event configurations |
 | `retryEveryMilliseconds` | Polling interval for retry mechanism |
-| `maxInboxOutboxTransportEventPerRetry` | Batch size per polling cycle |
+| `maxOutboxTransportEventPerRetry` | Batch size per polling cycle |
 | `isGlobal` | Register module globally (optional) |
 
 ## Emit Methods
@@ -205,18 +203,18 @@ LISTEN/NOTIFY is **enabled by default** when using the MikroORM driver with Post
 
 ```typescript
 import { MikroORM } from '@mikro-orm/core';
-import { InboxOutboxModule } from '@nestixis/nestjs-inbox-outbox';
-import { MikroORMDatabaseDriverFactory } from '@nestixis/nestjs-inbox-outbox-mikroorm-driver';
+import { OutboxModule } from '@fullstackhouse/nestjs-outbox';
+import { MikroORMDatabaseDriverFactory } from '@fullstackhouse/nestjs-outbox-mikroorm-driver';
 
 @Module({
   imports: [
-    InboxOutboxModule.registerAsync({
-      imports: [MikroOrmModule.forFeature([MikroOrmInboxOutboxTransportEvent])],
+    OutboxModule.registerAsync({
+      imports: [MikroOrmModule.forFeature([MikroOrmOutboxTransportEvent])],
       useFactory: (orm: MikroORM) => ({
         driverFactory: new MikroORMDatabaseDriverFactory(orm),
         events: [/* ... */],
         retryEveryMilliseconds: 30_000,
-        maxInboxOutboxTransportEventPerRetry: 10,
+        maxOutboxTransportEventPerRetry: 10,
       }),
       inject: [MikroORM],
     }),
@@ -235,7 +233,7 @@ The `PostgreSQLEventListener`:
 - Uses PostgreSQL triggers to send notifications on event insert
 - Automatically reconnects on connection failures (configurable delay, default 5s)
 - Works alongside polling as a fallback mechanism
-- Requires the LISTEN/NOTIFY migration from `InboxOutboxMigrations`
+- Requires the LISTEN/NOTIFY migration from `OutboxMigrations`
 
 ## Graceful Shutdown
 
@@ -252,8 +250,8 @@ To support additional ORMs or databases:
 
 1. **Implement `DatabaseDriver`** - Handle transactions, pessimistic locking, and persist/flush operations
 2. **Implement `DatabaseDriverFactory`** - Factory to instantiate your driver
-3. **Create a persistable model** - Implement `InboxOutboxTransportEvent` interface
-4. **Add migrations** - Create the `inbox_outbox_transport_event` table
+3. **Create a persistable model** - Implement `OutboxTransportEvent` interface
+4. **Add migrations** - Create the `outbox_transport_event` table
 
 See existing drivers in `packages/` for reference. Contributions welcome via PR.
 

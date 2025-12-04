@@ -3,28 +3,28 @@ import { Logger } from '@nestjs/common';
 import { DatabaseDriverFactory } from '../../driver/database-driver.factory';
 import { DatabaseDriver } from '../../driver/database.driver';
 import { TransactionalEventEmitter } from '../../emitter/transactional-event-emitter';
-import { InboxOutboxModuleOptions } from '../../inbox-outbox.module-definition';
-import { RetryableInboxOutboxEventPoller } from '../../poller/retryable-inbox-outbox-event.poller';
-import { InboxOutboxEventProcessorContract } from '../../processor/inbox-outbox-event-processor.contract';
+import { OutboxModuleOptions } from '../../outbox.module-definition';
+import { RetryableOutboxEventPoller } from '../../poller/retryable-outbox-event.poller';
+import { OutboxEventProcessorContract } from '../../processor/outbox-event-processor.contract';
 import { EventConfigurationResolver } from '../../resolver/event-configuration.resolver';
 import { createMockedDriverFactory } from './mock/driver-factory.mock';
 import { createMockedDriver } from './mock/driver.mock';
-import { createMockedInboxOutboxOptionsFactory } from './mock/inbox-outbox-options.mock';
+import { createMockedOutboxOptionsFactory } from './mock/outbox-options.mock';
 
-describe('RetryableInboxOutboxEventPoller', () => {
+describe('RetryableOutboxEventPoller', () => {
   let mockedDriver: DatabaseDriver;
   let mockedDriverFactory: DatabaseDriverFactory;
-  let inboxOutboxOptions: InboxOutboxModuleOptions;
+  let outboxOptions: OutboxModuleOptions;
   let mockLogger: Logger;
   let mockTransactionalEventEmitter: TransactionalEventEmitter;
   let mockEventConfigurationResolver: EventConfigurationResolver;
-  let mockInboxOutboxEventProcessor: InboxOutboxEventProcessorContract;
+  let mockOutboxEventProcessor: OutboxEventProcessorContract;
 
   beforeEach(() => {
     vi.useFakeTimers();
     mockedDriver = createMockedDriver();
     mockedDriverFactory = createMockedDriverFactory(mockedDriver);
-    inboxOutboxOptions = createMockedInboxOutboxOptionsFactory(mockedDriverFactory, [
+    outboxOptions = createMockedOutboxOptionsFactory(mockedDriverFactory, [
       {
         name: 'testEvent',
         listeners: {
@@ -47,7 +47,7 @@ describe('RetryableInboxOutboxEventPoller', () => {
 
     mockEventConfigurationResolver = {} as EventConfigurationResolver;
 
-    mockInboxOutboxEventProcessor = {
+    mockOutboxEventProcessor = {
       process: vi.fn().mockResolvedValue(undefined),
     };
   });
@@ -57,10 +57,10 @@ describe('RetryableInboxOutboxEventPoller', () => {
   });
 
   function createPoller() {
-    return new RetryableInboxOutboxEventPoller(
-      inboxOutboxOptions,
+    return new RetryableOutboxEventPoller(
+      outboxOptions,
       mockedDriverFactory,
-      mockInboxOutboxEventProcessor,
+      mockOutboxEventProcessor,
       mockTransactionalEventEmitter,
       mockEventConfigurationResolver,
       mockLogger,
@@ -74,8 +74,8 @@ describe('RetryableInboxOutboxEventPoller', () => {
 
       await poller.onModuleDestroy();
 
-      expect(mockLogger.log).toHaveBeenCalledWith('Shutting down RetryableInboxOutboxEventPoller...');
-      expect(mockLogger.log).toHaveBeenCalledWith('RetryableInboxOutboxEventPoller shutdown complete.');
+      expect(mockLogger.log).toHaveBeenCalledWith('Shutting down RetryableOutboxEventPoller...');
+      expect(mockLogger.log).toHaveBeenCalledWith('RetryableOutboxEventPoller shutdown complete.');
     });
 
     it('should stop polling after shutdown is initiated', async () => {
@@ -83,14 +83,14 @@ describe('RetryableInboxOutboxEventPoller', () => {
       const poller = createPoller();
       await poller.onModuleInit();
 
-      vi.advanceTimersByTime(inboxOutboxOptions.retryEveryMilliseconds);
+      vi.advanceTimersByTime(outboxOptions.retryEveryMilliseconds);
       await Promise.resolve();
 
       const callCountBeforeShutdown = (mockedDriver.findAndExtendReadyToRetryEvents as Mock).mock.calls.length;
 
       await poller.onModuleDestroy();
 
-      vi.advanceTimersByTime(inboxOutboxOptions.retryEveryMilliseconds * 5);
+      vi.advanceTimersByTime(outboxOptions.retryEveryMilliseconds * 5);
       await Promise.resolve();
 
       const callCountAfterShutdown = (mockedDriver.findAndExtendReadyToRetryEvents as Mock).mock.calls.length;
@@ -103,7 +103,7 @@ describe('RetryableInboxOutboxEventPoller', () => {
         resolveProcessing = resolve;
       });
 
-      (mockInboxOutboxEventProcessor.process as Mock).mockReturnValue(processingPromise);
+      (mockOutboxEventProcessor.process as Mock).mockReturnValue(processingPromise);
 
       const mockEvent = {
         id: 1,
@@ -119,13 +119,13 @@ describe('RetryableInboxOutboxEventPoller', () => {
       const poller = createPoller();
       await poller.onModuleInit();
 
-      vi.advanceTimersByTime(inboxOutboxOptions.retryEveryMilliseconds);
+      vi.advanceTimersByTime(outboxOptions.retryEveryMilliseconds);
       await Promise.resolve();
       await Promise.resolve();
 
       const shutdownPromise = poller.onModuleDestroy();
 
-      expect(mockLogger.log).toHaveBeenCalledWith('Shutting down RetryableInboxOutboxEventPoller...');
+      expect(mockLogger.log).toHaveBeenCalledWith('Shutting down RetryableOutboxEventPoller...');
       expect(mockLogger.log).toHaveBeenCalledWith(expect.stringContaining('Waiting for'));
 
       let shutdownCompleted = false;
@@ -140,7 +140,7 @@ describe('RetryableInboxOutboxEventPoller', () => {
       await shutdownPromise;
 
       expect(mockLogger.log).toHaveBeenCalledWith('All in-flight events completed.');
-      expect(mockLogger.log).toHaveBeenCalledWith('RetryableInboxOutboxEventPoller shutdown complete.');
+      expect(mockLogger.log).toHaveBeenCalledWith('RetryableOutboxEventPoller shutdown complete.');
     });
 
     it('should handle shutdown when no in-flight processing exists', async () => {
@@ -150,9 +150,9 @@ describe('RetryableInboxOutboxEventPoller', () => {
 
       await poller.onModuleDestroy();
 
-      expect(mockLogger.log).toHaveBeenCalledWith('Shutting down RetryableInboxOutboxEventPoller...');
+      expect(mockLogger.log).toHaveBeenCalledWith('Shutting down RetryableOutboxEventPoller...');
       expect(mockLogger.log).not.toHaveBeenCalledWith(expect.stringContaining('Waiting for'));
-      expect(mockLogger.log).toHaveBeenCalledWith('RetryableInboxOutboxEventPoller shutdown complete.');
+      expect(mockLogger.log).toHaveBeenCalledWith('RetryableOutboxEventPoller shutdown complete.');
     });
 
     it('should handle shutdown gracefully even if called before onModuleInit', async () => {
@@ -160,8 +160,8 @@ describe('RetryableInboxOutboxEventPoller', () => {
 
       await poller.onModuleDestroy();
 
-      expect(mockLogger.log).toHaveBeenCalledWith('Shutting down RetryableInboxOutboxEventPoller...');
-      expect(mockLogger.log).toHaveBeenCalledWith('RetryableInboxOutboxEventPoller shutdown complete.');
+      expect(mockLogger.log).toHaveBeenCalledWith('Shutting down RetryableOutboxEventPoller...');
+      expect(mockLogger.log).toHaveBeenCalledWith('RetryableOutboxEventPoller shutdown complete.');
     });
   });
 });

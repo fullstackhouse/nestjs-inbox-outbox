@@ -2,18 +2,18 @@ import { DataSource } from 'typeorm';
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, DynamicModule, Type } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { InboxOutboxModule, InboxOutboxModuleEventOptions } from '@nestixis/nestjs-inbox-outbox';
-import { TypeOrmInboxOutboxTransportEvent } from '../model/typeorm-inbox-outbox-transport-event.model';
+import { OutboxModule, OutboxModuleEventOptions } from '@fullstackhouse/nestjs-outbox';
+import { TypeOrmOutboxTransportEvent } from '../model/typeorm-outbox-transport-event.model';
 import { TypeORMDatabaseDriverFactory } from '../driver/typeorm-database-driver.factory';
 import { randomUUID } from 'crypto';
 import { Client } from 'pg';
 
 export interface TestAppConfig {
-  events: InboxOutboxModuleEventOptions[];
+  events: OutboxModuleEventOptions[];
   additionalModules?: DynamicModule[];
   additionalEntities?: Type[];
   retryEveryMilliseconds?: number;
-  maxInboxOutboxTransportEventPerRetry?: number;
+  maxOutboxTransportEventPerRetry?: number;
 }
 
 export interface TestContext {
@@ -64,11 +64,11 @@ export async function createTestApp(config: TestAppConfig): Promise<TestContext>
     username: BASE_CONNECTION.user,
     password: BASE_CONNECTION.password,
     database: dbName,
-    entities: [TypeOrmInboxOutboxTransportEvent, ...(config.additionalEntities || [])],
+    entities: [TypeOrmOutboxTransportEvent, ...(config.additionalEntities || [])],
     synchronize: true,
   });
 
-  const inboxOutboxModule = InboxOutboxModule.registerAsync({
+  const inboxOutboxModule = OutboxModule.registerAsync({
     imports: [TypeOrmModule],
     useFactory: (dataSource: DataSource) => {
       const driverFactory = new TypeORMDatabaseDriverFactory(dataSource);
@@ -76,7 +76,7 @@ export async function createTestApp(config: TestAppConfig): Promise<TestContext>
         driverFactory,
         events: config.events,
         retryEveryMilliseconds: config.retryEveryMilliseconds ?? 10000,
-        maxInboxOutboxTransportEventPerRetry: config.maxInboxOutboxTransportEventPerRetry ?? 100,
+        maxOutboxTransportEventPerRetry: config.maxOutboxTransportEventPerRetry ?? 100,
       };
     },
     inject: [DataSource],

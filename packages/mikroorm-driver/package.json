@@ -1,7 +1,7 @@
 {
-  "name": "@nestixis/nestjs-inbox-outbox-mikroorm-driver",
+  "name": "@fullstackhouse/nestjs-outbox-mikroorm-driver",
   "version": "1.0.1",
-  "description": "This package provides a driver for the NestJS Inbox Outbox library that uses MikroORM to interact with the database.",
+  "description": "This package provides a driver for the NestJS Outbox library that uses MikroORM to interact with the database.",
   "scripts": {
     "build": "tsc",
     "test": "vitest run",
@@ -10,19 +10,19 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Nestixis/nestjs-inbox-outbox.git"
+    "url": "git+https://github.com/fullstackhouse/nestjs-outbox.git"
   },
   "publishConfig": {
     "access": "public"
   },
-  "author": "Nestixis",
+  "author": "Full Stack House",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "license": "MIT",
   "dependencies": {
     "@mikro-orm/core": "^6.3.9",
     "@mikro-orm/migrations": "^6.3.9",
-    "@nestixis/nestjs-inbox-outbox": "^1.0.1"
+    "@fullstackhouse/nestjs-outbox": "*"
   },
   "devDependencies": {
     "@mikro-orm/nestjs": "6.0.2",

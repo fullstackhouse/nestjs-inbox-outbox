@@ -1,12 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { DATABASE_DRIVER_FACTORY_TOKEN, DatabaseDriverFactory } from '../driver/database-driver.factory';
 import { DatabaseDriverPersister } from '../driver/database.driver-persister';
-import { InboxOutboxModuleEventOptions, InboxOutboxModuleOptions, MODULE_OPTIONS_TOKEN } from '../inbox-outbox.module-definition';
+import { OutboxModuleEventOptions, OutboxModuleOptions, MODULE_OPTIONS_TOKEN } from '../outbox.module-definition';
 import { IListener } from '../listener/contract/listener.interface';
 import { ListenerDuplicateNameException } from '../listener/exception/listener-duplicate-name.exception';
-import { INBOX_OUTBOX_EVENT_PROCESSOR_TOKEN, InboxOutboxEventProcessorContract } from '../processor/inbox-outbox-event-processor.contract';
+import { OUTBOX_EVENT_PROCESSOR_TOKEN, OutboxEventProcessorContract } from '../processor/outbox-event-processor.contract';
 import { EVENT_CONFIGURATION_RESOLVER_TOKEN, EventConfigurationResolverContract } from '../resolver/event-configuration-resolver.contract';
-import { InboxOutboxEvent } from './contract/inbox-outbox-event.interface';
+import { OutboxEvent } from './contract/outbox-event.interface';
 
 export enum TransactionalEventEmitterOperations {
   persist = 'persist',
@@ -18,14 +18,14 @@ export class TransactionalEventEmitter {
   private listeners: Map<string, IListener<any>[]> = new Map();
 
   constructor(
-    @Inject(MODULE_OPTIONS_TOKEN) private options: InboxOutboxModuleOptions,
+    @Inject(MODULE_OPTIONS_TOKEN) private options: OutboxModuleOptions,
     @Inject(DATABASE_DRIVER_FACTORY_TOKEN) private databaseDriverFactory: DatabaseDriverFactory,
-    @Inject(INBOX_OUTBOX_EVENT_PROCESSOR_TOKEN) private inboxOutboxEventProcessor: InboxOutboxEventProcessorContract,
+    @Inject(OUTBOX_EVENT_PROCESSOR_TOKEN) private outboxEventProcessor: OutboxEventProcessorContract,
     @Inject(EVENT_CONFIGURATION_RESOLVER_TOKEN) private eventConfigurationResolver: EventConfigurationResolverContract,
   ) {}
 
   private async emitInternal(
-    event: InboxOutboxEvent,
+    event: OutboxEvent,
     entities: {
       operation: TransactionalEventEmitterOperations;
       entity: object;
@@ -33,7 +33,7 @@ export class TransactionalEventEmitter {
     customDatabaseDriverPersister?: DatabaseDriverPersister,
     awaitProcessor: boolean = false,
   ): Promise<void> {
-    const eventOptions: InboxOutboxModuleEventOptions = this.options.events.find((optionEvent) => optionEvent.name === event.name);
+    const eventOptions: OutboxModuleEventOptions = this.options.events.find((optionEvent) => optionEvent.name === event.name);
     if (!eventOptions) {
       throw new Error(`Event ${event.name} is not configured. Did you forget to add it to the module options?`);
     }
@@ -41,7 +41,7 @@ export class TransactionalEventEmitter {
     const databaseDriver = this.databaseDriverFactory.create(this.eventConfigurationResolver);
     const currentTimestamp = new Date().getTime();
     
-    const inboxOutboxTransportEvent = databaseDriver.createInboxOutboxTransportEvent(
+    const outboxTransportEvent = databaseDriver.createOutboxTransportEvent(
       event.name,
       event,
       currentTimestamp + eventOptions.listeners.expiresAtTTL,
@@ -58,7 +58,7 @@ export class TransactionalEventEmitter {
       }
     });
 
-    persister.persist(inboxOutboxTransportEvent);
+    persister.persist(outboxTransportEvent);
     await persister.flush();
 
     if (eventOptions.immediateProcessing === false) {
@@ -66,15 +66,15 @@ export class TransactionalEventEmitter {
     }
 
     if (awaitProcessor) {
-      await this.inboxOutboxEventProcessor.process(eventOptions, inboxOutboxTransportEvent, this.getListeners(event.name));
+      await this.outboxEventProcessor.process(eventOptions, outboxTransportEvent, this.getListeners(event.name));
       return;
     }
 
-    this.inboxOutboxEventProcessor.process(eventOptions, inboxOutboxTransportEvent, this.getListeners(event.name));
+    this.outboxEventProcessor.process(eventOptions, outboxTransportEvent, this.getListeners(event.name));
   }
 
   async emit(
-    event: InboxOutboxEvent,
+    event: OutboxEvent,
     entities: {
       operation: TransactionalEventEmitterOperations;
       entity: object;
@@ -85,7 +85,7 @@ export class TransactionalEventEmitter {
   }
 
   async emitAsync(
-    event: InboxOutboxEvent,
+    event: OutboxEvent,
     entities: {
       operation: TransactionalEventEmitterOperations;
       entity: object;

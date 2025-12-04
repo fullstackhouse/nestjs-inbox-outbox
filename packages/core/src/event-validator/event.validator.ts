@@ -1,12 +1,12 @@
 import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
-import { MODULE_OPTIONS_TOKEN, InboxOutboxModuleOptions } from '../inbox-outbox.module-definition';
+import { MODULE_OPTIONS_TOKEN, OutboxModuleOptions } from '../outbox.module-definition';
 import { EventDuplicateNameException } from './exception/event-duplicate-name.exception';
 
 @Injectable()
 export class EventValidator implements OnModuleInit {
   constructor(
     @Inject(MODULE_OPTIONS_TOKEN)
-    private readonly options: InboxOutboxModuleOptions,
+    private readonly options: OutboxModuleOptions,
   ) {}
 
   onModuleInit() {

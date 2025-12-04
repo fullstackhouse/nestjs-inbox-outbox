@@ -1,6 +1,6 @@
 import { MikroORM } from '@mikro-orm/core';
 import { Logger } from '@nestjs/common';
-import { EventListener } from '@nestixis/nestjs-inbox-outbox';
+import { EventListener } from '@fullstackhouse/nestjs-outbox';
 import { Client, Notification } from 'pg';
 import { Observable, Subject } from 'rxjs';
 
@@ -28,10 +28,10 @@ export function getNotifyTriggerSQL(channelName: string = DEFAULT_POSTGRESQL_EVE
     `,
     createTrigger: `
       CREATE TRIGGER inbox_outbox_event_notify
-        AFTER INSERT ON inbox_outbox_transport_event
+        AFTER INSERT ON outbox_transport_event
         FOR EACH ROW EXECUTE FUNCTION notify_inbox_outbox_event();
     `,
-    dropTrigger: 'DROP TRIGGER IF EXISTS inbox_outbox_event_notify ON inbox_outbox_transport_event;',
+    dropTrigger: 'DROP TRIGGER IF EXISTS inbox_outbox_event_notify ON outbox_transport_event;',
     dropFunction: 'DROP FUNCTION IF EXISTS notify_inbox_outbox_event();',
   };
 }

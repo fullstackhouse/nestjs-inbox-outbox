@@ -1,15 +1,15 @@
 {
-  "name": "@nestixis/nestjs-inbox-outbox-typeorm-driver",
+  "name": "@fullstackhouse/nestjs-outbox-typeorm-driver",
   "version": "1.0.1",
-  "description": "This package provides a driver for the NestJS Inbox Outbox library that uses TypeORM to interact with the database.",
+  "description": "This package provides a driver for the NestJS Outbox library that uses TypeORM to interact with the database.",
   "author": "axotion <7965436+axotion@users.noreply.github.com>",
-  "homepage": "https://github.com/Nestixis/nestjs-inbox-outbox#readme",
+  "homepage": "https://github.com/fullstackhouse/nestjs-outbox#readme",
   "license": "MIT",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Nestixis/nestjs-inbox-outbox.git"
+    "url": "git+https://github.com/fullstackhouse/nestjs-outbox.git"
   },
   "scripts": {
     "build": "tsc",
@@ -21,7 +21,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@nestixis/nestjs-inbox-outbox": "^1.0.1",
+    "@fullstackhouse/nestjs-outbox": "*",
     "reflect-metadata": "^0.2.2",
     "typeorm": "^0.3.20"
   },

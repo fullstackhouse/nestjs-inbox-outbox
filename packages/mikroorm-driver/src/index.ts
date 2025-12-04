@@ -2,4 +2,4 @@ export * from './driver/mikroorm-database-driver.factory'
 export * from './driver/mikroorm.database-driver'
 export * from './listener/postgresql-event-listener'
 export * from './migrations/migrations'
-export * from "./model/mikroorm-inbox-outbox-transport-event.model"
+export * from "./model/mikroorm-outbox-transport-event.model"

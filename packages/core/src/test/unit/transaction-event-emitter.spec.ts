@@ -1,35 +1,35 @@
 import { DatabaseDriverFactory } from '../../driver/database-driver.factory';
 import { DatabaseDriver } from '../../driver/database.driver';
 import { TransactionalEventEmitter, TransactionalEventEmitterOperations } from '../../emitter/transactional-event-emitter';
-import { InboxOutboxModuleOptions } from '../../inbox-outbox.module-definition';
+import { OutboxModuleOptions } from '../../outbox.module-definition';
 import { IListener } from '../../listener/contract/listener.interface';
-import { InboxOutboxEventProcessorContract } from '../../processor/inbox-outbox-event-processor.contract';
+import { OutboxEventProcessorContract } from '../../processor/outbox-event-processor.contract';
 import { EventConfigurationResolverContract } from '../../resolver/event-configuration-resolver.contract';
 import { createMockedDriverFactory } from './mock/driver-factory.mock';
 import { createMockedDriver } from './mock/driver.mock';
 import { createMockedEventConfigurationResolver } from './mock/event-configuration-resolver.mock';
-import { createMockedInboxOutboxEventProcessor } from './mock/inbox-outbox-event-processor.mock';
-import { createMockedInboxOutboxOptionsFactory } from './mock/inbox-outbox-options.mock';
+import { createMockedOutboxEventProcessor } from './mock/outbox-event-processor.mock';
+import { createMockedOutboxOptionsFactory } from './mock/outbox-options.mock';
 
 describe('TransacationalEventEmitter', () => {
 
   let mockedDriver: DatabaseDriver;
   let mockedDriverFactory: DatabaseDriverFactory;
-  let inboxOutboxOptions: InboxOutboxModuleOptions;
-  let mockedInboxOutboxEventProcessor: InboxOutboxEventProcessorContract;
+  let outboxOptions: OutboxModuleOptions;
+  let mockedOutboxEventProcessor: OutboxEventProcessorContract;
   let mockedEventConfigurationResolver: EventConfigurationResolverContract;
 
   beforeEach(() => {
     mockedDriver = createMockedDriver();
     mockedDriverFactory = createMockedDriverFactory(mockedDriver);
-    inboxOutboxOptions = createMockedInboxOutboxOptionsFactory(mockedDriverFactory, []);
-    mockedInboxOutboxEventProcessor = createMockedInboxOutboxEventProcessor();
+    outboxOptions = createMockedOutboxOptionsFactory(mockedDriverFactory, []);
+    mockedOutboxEventProcessor = createMockedOutboxEventProcessor();
     mockedEventConfigurationResolver = createMockedEventConfigurationResolver();
   });
 
   it('Should call persist 2 times and flush', async () => {
 
-    inboxOutboxOptions.events = [
+    outboxOptions.events = [
       {
         name: 'newEvent',
         listeners: {
@@ -40,7 +40,7 @@ describe('TransacationalEventEmitter', () => {
       },
     ];
 
-    const transactionalEventEmitter = new TransactionalEventEmitter(inboxOutboxOptions, mockedDriverFactory, mockedInboxOutboxEventProcessor, mockedEventConfigurationResolver);
+    const transactionalEventEmitter = new TransactionalEventEmitter(outboxOptions, mockedDriverFactory, mockedOutboxEventProcessor, mockedEventConfigurationResolver);
 
     const newEvent = {
       name: 'newEvent',
@@ -64,7 +64,7 @@ describe('TransacationalEventEmitter', () => {
 
   it('Should call remove 1 times and flush', async () => {
 
-    inboxOutboxOptions.events = [
+    outboxOptions.events = [
       {
         name: 'newEvent',
         listeners: {
@@ -75,7 +75,7 @@ describe('TransacationalEventEmitter', () => {
       },
     ];
 
-    const transactionalEventEmitter = new TransactionalEventEmitter(inboxOutboxOptions, mockedDriverFactory, mockedInboxOutboxEventProcessor, mockedEventConfigurationResolver);
+    const transactionalEventEmitter = new TransactionalEventEmitter(outboxOptions, mockedDriverFactory, mockedOutboxEventProcessor, mockedEventConfigurationResolver);
 
     const newEvent = {
       name: 'newEvent',
@@ -99,7 +99,7 @@ describe('TransacationalEventEmitter', () => {
 
   it('Should call persist 3 times and flush', async () => {
 
-    inboxOutboxOptions.events = [
+    outboxOptions.events = [
       {
         name: 'newEvent',
         listeners: {
@@ -110,7 +110,7 @@ describe('TransacationalEventEmitter', () => {
       },
     ];
 
-    const transactionalEventEmitter = new TransactionalEventEmitter(inboxOutboxOptions, mockedDriverFactory, mockedInboxOutboxEventProcessor, mockedEventConfigurationResolver);
+    const transactionalEventEmitter = new TransactionalEventEmitter(outboxOptions, mockedDriverFactory, mockedOutboxEventProcessor, mockedEventConfigurationResolver);
 
     const newEvent = {
       name: 'newEvent',
@@ -137,7 +137,7 @@ describe('TransacationalEventEmitter', () => {
 
   it('Should call persist 1 times and flush', async () => {
 
-    inboxOutboxOptions.events = [
+    outboxOptions.events = [
       {
         name: 'newEvent',
         listeners: {
@@ -148,7 +148,7 @@ describe('TransacationalEventEmitter', () => {
       },
     ];
 
-    const transactionalEventEmitter = new TransactionalEventEmitter(inboxOutboxOptions, mockedDriverFactory, mockedInboxOutboxEventProcessor, mockedEventConfigurationResolver);
+    const transactionalEventEmitter = new TransactionalEventEmitter(outboxOptions, mockedDriverFactory, mockedOutboxEventProcessor, mockedEventConfigurationResolver);
 
     const newEvent = {
       name: 'newEvent',
@@ -160,9 +160,9 @@ describe('TransacationalEventEmitter', () => {
     expect(mockedDriver.flush).toHaveBeenCalled();
   });
 
-  it('Should call process one time on inboxOutboxEventProcessor', async () => {
+  it('Should call process one time on outboxEventProcessor', async () => {
 
-    inboxOutboxOptions.events = [
+    outboxOptions.events = [
       {
         name: 'newEvent',
         listeners: {
@@ -173,9 +173,9 @@ describe('TransacationalEventEmitter', () => {
       },
     ];
   
-    const transactionalEventEmitter = new TransactionalEventEmitter(inboxOutboxOptions, mockedDriverFactory, mockedInboxOutboxEventProcessor, mockedEventConfigurationResolver);
+    const transactionalEventEmitter = new TransactionalEventEmitter(outboxOptions, mockedDriverFactory, mockedOutboxEventProcessor, mockedEventConfigurationResolver);
 
-    inboxOutboxOptions = createMockedInboxOutboxOptionsFactory(mockedDriverFactory, [
+    outboxOptions = createMockedOutboxOptionsFactory(mockedDriverFactory, [
       {
         name: 'newEvent',
         listeners: {
@@ -201,11 +201,11 @@ describe('TransacationalEventEmitter', () => {
       },
     ]);
 
-    expect(mockedInboxOutboxEventProcessor.process).toHaveBeenCalledTimes(1);
+    expect(mockedOutboxEventProcessor.process).toHaveBeenCalledTimes(1);
   });
 
   it('Should throw an error when event is not configured', async () => {
-    const transactionalEventEmitter = new TransactionalEventEmitter(inboxOutboxOptions, mockedDriverFactory, mockedInboxOutboxEventProcessor, mockedEventConfigurationResolver);
+    const transactionalEventEmitter = new TransactionalEventEmitter(outboxOptions, mockedDriverFactory, mockedOutboxEventProcessor, mockedEventConfigurationResolver);
 
     const newEvent = {
       name: 'notConfiguredEvent',
@@ -216,7 +216,7 @@ describe('TransacationalEventEmitter', () => {
 
 
   it('Should throw an error when listener has duplicate name', async () => {
-    const transactionalEventEmitter = new TransactionalEventEmitter(inboxOutboxOptions, mockedDriverFactory, mockedInboxOutboxEventProcessor, mockedEventConfigurationResolver);
+    const transactionalEventEmitter = new TransactionalEventEmitter(outboxOptions, mockedDriverFactory, mockedOutboxEventProcessor, mockedEventConfigurationResolver);
 
     const listener : IListener<any> = {
       getName: () => {
@@ -233,7 +233,7 @@ describe('TransacationalEventEmitter', () => {
   });
 
   it('Should add listener', async () => {
-    const transactionalEventEmitter = new TransactionalEventEmitter(inboxOutboxOptions, mockedDriverFactory, mockedInboxOutboxEventProcessor, mockedEventConfigurationResolver);
+    const transactionalEventEmitter = new TransactionalEventEmitter(outboxOptions, mockedDriverFactory, mockedOutboxEventProcessor, mockedEventConfigurationResolver);
 
     const listener : IListener<any> = {
       getName: () => {
@@ -251,7 +251,7 @@ describe('TransacationalEventEmitter', () => {
   
 
   it('Should remove listener', async () => {
-    const transactionalEventEmitter = new TransactionalEventEmitter(inboxOutboxOptions, mockedDriverFactory, mockedInboxOutboxEventProcessor, mockedEventConfigurationResolver);
+    const transactionalEventEmitter = new TransactionalEventEmitter(outboxOptions, mockedDriverFactory, mockedOutboxEventProcessor, mockedEventConfigurationResolver);
 
     const listener : IListener<any> = {
       getName: () => {
@@ -270,7 +270,7 @@ describe('TransacationalEventEmitter', () => {
   })
 
   it('Should get event names', async () => {
-    const transactionalEventEmitter = new TransactionalEventEmitter(inboxOutboxOptions, mockedDriverFactory, mockedInboxOutboxEventProcessor, mockedEventConfigurationResolver);
+    const transactionalEventEmitter = new TransactionalEventEmitter(outboxOptions, mockedDriverFactory, mockedOutboxEventProcessor, mockedEventConfigurationResolver);
 
     const listener : IListener<any> = {
       getName: () => {
@@ -287,7 +287,7 @@ describe('TransacationalEventEmitter', () => {
   })
 
   it('Should not call process when immediateProcessing is false', async () => {
-    inboxOutboxOptions.events = [
+    outboxOptions.events = [
       {
         name: 'newEvent',
         listeners: {
@@ -299,7 +299,7 @@ describe('TransacationalEventEmitter', () => {
       },
     ];
 
-    const transactionalEventEmitter = new TransactionalEventEmitter(inboxOutboxOptions, mockedDriverFactory, mockedInboxOutboxEventProcessor, mockedEventConfigurationResolver);
+    const transactionalEventEmitter = new TransactionalEventEmitter(outboxOptions, mockedDriverFactory, mockedOutboxEventProcessor, mockedEventConfigurationResolver);
 
     const newEvent = {
       name: 'newEvent',
@@ -309,11 +309,11 @@ describe('TransacationalEventEmitter', () => {
 
     expect(mockedDriver.persist).toHaveBeenCalledTimes(1);
     expect(mockedDriver.flush).toHaveBeenCalled();
-    expect(mockedInboxOutboxEventProcessor.process).not.toHaveBeenCalled();
+    expect(mockedOutboxEventProcessor.process).not.toHaveBeenCalled();
   });
 
   it('Should not call process when immediateProcessing is false with emitAsync', async () => {
-    inboxOutboxOptions.events = [
+    outboxOptions.events = [
       {
         name: 'newEvent',
         listeners: {
@@ -325,7 +325,7 @@ describe('TransacationalEventEmitter', () => {
       },
     ];
 
-    const transactionalEventEmitter = new TransactionalEventEmitter(inboxOutboxOptions, mockedDriverFactory, mockedInboxOutboxEventProcessor, mockedEventConfigurationResolver);
+    const transactionalEventEmitter = new TransactionalEventEmitter(outboxOptions, mockedDriverFactory, mockedOutboxEventProcessor, mockedEventConfigurationResolver);
 
     const newEvent = {
       name: 'newEvent',
@@ -335,11 +335,11 @@ describe('TransacationalEventEmitter', () => {
 
     expect(mockedDriver.persist).toHaveBeenCalledTimes(1);
     expect(mockedDriver.flush).toHaveBeenCalled();
-    expect(mockedInboxOutboxEventProcessor.process).not.toHaveBeenCalled();
+    expect(mockedOutboxEventProcessor.process).not.toHaveBeenCalled();
   });
 
   it('Should call process when immediateProcessing is true', async () => {
-    inboxOutboxOptions.events = [
+    outboxOptions.events = [
       {
         name: 'newEvent',
         listeners: {
@@ -351,7 +351,7 @@ describe('TransacationalEventEmitter', () => {
       },
     ];
 
-    const transactionalEventEmitter = new TransactionalEventEmitter(inboxOutboxOptions, mockedDriverFactory, mockedInboxOutboxEventProcessor, mockedEventConfigurationResolver);
+    const transactionalEventEmitter = new TransactionalEventEmitter(outboxOptions, mockedDriverFactory, mockedOutboxEventProcessor, mockedEventConfigurationResolver);
 
     const newEvent = {
       name: 'newEvent',
@@ -359,11 +359,11 @@ describe('TransacationalEventEmitter', () => {
 
     await transactionalEventEmitter.emit(newEvent);
 
-    expect(mockedInboxOutboxEventProcessor.process).toHaveBeenCalledTimes(1);
+    expect(mockedOutboxEventProcessor.process).toHaveBeenCalledTimes(1);
   });
 
   it('Should call process when immediateProcessing is undefined (default behavior)', async () => {
-    inboxOutboxOptions.events = [
+    outboxOptions.events = [
       {
         name: 'newEvent',
         listeners: {
@@ -374,7 +374,7 @@ describe('TransacationalEventEmitter', () => {
       },
     ];
 
-    const transactionalEventEmitter = new TransactionalEventEmitter(inboxOutboxOptions, mockedDriverFactory, mockedInboxOutboxEventProcessor, mockedEventConfigurationResolver);
+    const transactionalEventEmitter = new TransactionalEventEmitter(outboxOptions, mockedDriverFactory, mockedOutboxEventProcessor, mockedEventConfigurationResolver);
 
     const newEvent = {
       name: 'newEvent',
@@ -382,6 +382,6 @@ describe('TransacationalEventEmitter', () => {
 
     await transactionalEventEmitter.emit(newEvent);
 
-    expect(mockedInboxOutboxEventProcessor.process).toHaveBeenCalledTimes(1);
+    expect(mockedOutboxEventProcessor.process).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,11 +1,11 @@
 import { EventValidator } from '../../event-validator/event.validator';
-import { InboxOutboxModuleOptions } from '../../inbox-outbox.module-definition';
+import { OutboxModuleOptions } from '../../outbox.module-definition';
 
 describe('EventValidator', () => {
   it('should throw an exception when event names are not unique', () => {
-    const mockOptions: InboxOutboxModuleOptions = {
+    const mockOptions: OutboxModuleOptions = {
       driverFactory: null,
-      maxInboxOutboxTransportEventPerRetry: 10,
+      maxOutboxTransportEventPerRetry: 10,
       retryEveryMilliseconds: 1000,
       events: [
         {
@@ -33,9 +33,9 @@ describe('EventValidator', () => {
   });
 
   it('should not throw an exception when event names are unique', () => {
-    const mockOptions: InboxOutboxModuleOptions = {
+    const mockOptions: OutboxModuleOptions = {
       driverFactory: null,
-      maxInboxOutboxTransportEventPerRetry: 10,
+      maxOutboxTransportEventPerRetry: 10,
       retryEveryMilliseconds: 1000,
       events: [
         {

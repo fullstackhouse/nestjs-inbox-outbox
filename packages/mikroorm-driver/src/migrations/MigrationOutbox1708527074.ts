@@ -1,10 +1,10 @@
 import { Migration } from '@mikro-orm/migrations';
 
-export class MigrationInboxOutbox1708527074 extends Migration {
+export class MigrationOutbox1708527074 extends Migration {
   async up(): Promise<void> {
     this.addSql(
       this.getKnex()
-        .schema.createTable('inbox_outbox_transport_event', (table) => {
+        .schema.createTable('outbox_transport_event', (table) => {
           table.bigIncrements('id').primary();
           table.string('event_name').notNullable();
           table.json('event_payload').notNullable();

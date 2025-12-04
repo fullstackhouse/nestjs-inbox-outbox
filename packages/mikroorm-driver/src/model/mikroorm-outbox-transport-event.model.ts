@@ -1,10 +1,10 @@
 import { Entity, PrimaryKey, Property } from '@mikro-orm/core';
-import { InboxOutboxTransportEvent } from '@nestixis/nestjs-inbox-outbox';
+import { OutboxTransportEvent } from '@fullstackhouse/nestjs-outbox';
 
 @Entity({
-  tableName: 'inbox_outbox_transport_event',
+  tableName: 'outbox_transport_event',
 })
-export class MikroOrmInboxOutboxTransportEvent implements InboxOutboxTransportEvent {
+export class MikroOrmOutboxTransportEvent implements OutboxTransportEvent {
   @PrimaryKey()
   id: number;
 
@@ -31,8 +31,8 @@ export class MikroOrmInboxOutboxTransportEvent implements InboxOutboxTransportEv
   @Property({ type: 'bigint' })
   insertedAt: number;
 
-  create(eventName: string, eventPayload: any, expireAt: number, readyToRetryAfter: number | null): InboxOutboxTransportEvent {
-    const event = new MikroOrmInboxOutboxTransportEvent();
+  create(eventName: string, eventPayload: any, expireAt: number, readyToRetryAfter: number | null): OutboxTransportEvent {
+    const event = new MikroOrmOutboxTransportEvent();
     event.eventName = eventName;
     event.eventPayload = eventPayload;
     event.expireAt = expireAt;

@@ -4,10 +4,10 @@ import { Entity, PrimaryKey, Property, MikroORM } from '@mikro-orm/core';
 import {
   TransactionalEventEmitter,
   TransactionalEventEmitterOperations,
-  InboxOutboxEvent,
+  OutboxEvent,
   IListener,
-} from '@nestixis/nestjs-inbox-outbox';
-import { MikroOrmInboxOutboxTransportEvent } from '../model/mikroorm-inbox-outbox-transport-event.model';
+} from '@fullstackhouse/nestjs-outbox';
+import { MikroOrmOutboxTransportEvent } from '../model/mikroorm-outbox-transport-event.model';
 import { createTestApp, cleanupTestApp, TestContext } from './test-utils';
 
 @Entity({ tableName: 'users' })
@@ -22,7 +22,7 @@ class User {
   name: string;
 }
 
-class UserCreatedEvent extends InboxOutboxEvent {
+class UserCreatedEvent extends OutboxEvent {
   public readonly name = 'UserCreated';
 
   constructor(
@@ -33,7 +33,7 @@ class UserCreatedEvent extends InboxOutboxEvent {
   }
 }
 
-class UserDeletedEvent extends InboxOutboxEvent {
+class UserDeletedEvent extends OutboxEvent {
   public readonly name = 'UserDeleted';
 
   constructor(public readonly userId: number) {
@@ -241,7 +241,7 @@ describe('MySQL Integration Tests', () => {
       expect(handledEvents[0].email).toBe('listener@example.com');
 
       const em = orm.em.fork();
-      const transportEvents = await em.find(MikroOrmInboxOutboxTransportEvent, { eventName: 'UserCreated' });
+      const transportEvents = await em.find(MikroOrmOutboxTransportEvent, { eventName: 'UserCreated' });
       expect(transportEvents).toHaveLength(0);
     });
 
@@ -355,7 +355,7 @@ describe('MySQL Integration Tests', () => {
         ],
         additionalEntities: [User],
         retryEveryMilliseconds: 5000,
-        maxInboxOutboxTransportEventPerRetry: 10,
+        maxOutboxTransportEventPerRetry: 10,
         databaseType: 'mysql',
       });
     });
@@ -382,7 +382,7 @@ describe('MySQL Integration Tests', () => {
       await emitter.emitAsync(event, [{ operation: TransactionalEventEmitterOperations.persist, entity: user }]);
 
       const em = orm.em.fork();
-      const transportEvents = await em.find(MikroOrmInboxOutboxTransportEvent, { eventName: 'UserCreated' });
+      const transportEvents = await em.find(MikroOrmOutboxTransportEvent, { eventName: 'UserCreated' });
 
       expect(transportEvents).toHaveLength(1);
       expect(transportEvents[0].readyToRetryAfter).toBeGreaterThanOrEqual(beforeEmit + 100);
@@ -410,7 +410,7 @@ describe('MySQL Integration Tests', () => {
       await emitter.emitAsync(event, [{ operation: TransactionalEventEmitterOperations.persist, entity: user }]);
 
       const em = orm.em.fork();
-      const transportEvents = await em.find(MikroOrmInboxOutboxTransportEvent, { eventName: 'UserCreated' });
+      const transportEvents = await em.find(MikroOrmOutboxTransportEvent, { eventName: 'UserCreated' });
 
       expect(transportEvents).toHaveLength(1);
       expect(transportEvents[0].expireAt).toBeGreaterThanOrEqual(beforeEmit + 60000);
@@ -433,7 +433,7 @@ describe('MySQL Integration Tests', () => {
         ],
         additionalEntities: [User],
         retryEveryMilliseconds: 100,
-        maxInboxOutboxTransportEventPerRetry: 10,
+        maxOutboxTransportEventPerRetry: 10,
         databaseType: 'mysql',
       });
 
@@ -460,7 +460,7 @@ describe('MySQL Integration Tests', () => {
       expect(handledEvents).toHaveLength(0);
 
       const em = orm.em.fork();
-      const transportEvents = await em.find(MikroOrmInboxOutboxTransportEvent, { eventName: 'UserCreated' });
+      const transportEvents = await em.find(MikroOrmOutboxTransportEvent, { eventName: 'UserCreated' });
       expect(transportEvents).toHaveLength(1);
 
       await new Promise(resolve => setTimeout(resolve, 300));
@@ -488,7 +488,7 @@ describe('MySQL Integration Tests', () => {
         ],
         additionalEntities: [User],
         retryEveryMilliseconds: 10000,
-        maxInboxOutboxTransportEventPerRetry: 10,
+        maxOutboxTransportEventPerRetry: 10,
         databaseType: 'mysql',
       });
 

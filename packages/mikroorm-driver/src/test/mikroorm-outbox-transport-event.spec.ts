@@ -2,10 +2,10 @@ import 'reflect-metadata';
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { MikroORM } from '@mikro-orm/core';
 import { PostgreSqlDriver } from '@mikro-orm/postgresql';
-import { MikroOrmInboxOutboxTransportEvent } from '../model/mikroorm-inbox-outbox-transport-event.model';
+import { MikroOrmOutboxTransportEvent } from '../model/mikroorm-outbox-transport-event.model';
 import { createTestDatabase, dropTestDatabase } from './test-utils';
 
-describe('MikroOrmInboxOutboxTransportEvent', () => {
+describe('MikroOrmOutboxTransportEvent', () => {
   let orm: MikroORM;
   let dbName: string;
 
@@ -18,7 +18,7 @@ describe('MikroOrmInboxOutboxTransportEvent', () => {
       user: 'postgres',
       password: 'postgres',
       dbName,
-      entities: [MikroOrmInboxOutboxTransportEvent],
+      entities: [MikroOrmOutboxTransportEvent],
       allowGlobalContext: true,
     });
     await orm.getSchemaGenerator().createSchema();
@@ -30,7 +30,7 @@ describe('MikroOrmInboxOutboxTransportEvent', () => {
   });
 
   beforeEach(async () => {
-    await orm.em.nativeDelete(MikroOrmInboxOutboxTransportEvent, {});
+    await orm.em.nativeDelete(MikroOrmOutboxTransportEvent, {});
     orm.em.clear();
   });
 
@@ -41,7 +41,7 @@ describe('MikroOrmInboxOutboxTransportEvent', () => {
       const expireAt = Date.now() + 60000;
       const readyToRetryAfter = Date.now() + 5000;
 
-      const event = new MikroOrmInboxOutboxTransportEvent().create(
+      const event = new MikroOrmOutboxTransportEvent().create(
         eventName,
         eventPayload,
         expireAt,
@@ -58,7 +58,7 @@ describe('MikroOrmInboxOutboxTransportEvent', () => {
     });
 
     it('should handle null readyToRetryAfter', () => {
-      const event = new MikroOrmInboxOutboxTransportEvent().create(
+      const event = new MikroOrmOutboxTransportEvent().create(
         'TestEvent',
         {},
         Date.now() + 60000,
@@ -72,7 +72,7 @@ describe('MikroOrmInboxOutboxTransportEvent', () => {
   describe('persistence', () => {
     it('should persist and retrieve an event', async () => {
       const eventPayload = { key: 'value', nested: { data: 123 } };
-      const event = new MikroOrmInboxOutboxTransportEvent().create(
+      const event = new MikroOrmOutboxTransportEvent().create(
         'PersistenceTest',
         eventPayload,
         Date.now() + 60000,
@@ -83,7 +83,7 @@ describe('MikroOrmInboxOutboxTransportEvent', () => {
       await orm.em.flush();
       orm.em.clear();
 
-      const retrieved = await orm.em.findOne(MikroOrmInboxOutboxTransportEvent, { eventName: 'PersistenceTest' });
+      const retrieved = await orm.em.findOne(MikroOrmOutboxTransportEvent, { eventName: 'PersistenceTest' });
 
       expect(retrieved).toBeDefined();
       expect(retrieved!.eventName).toBe('PersistenceTest');
@@ -100,7 +100,7 @@ describe('MikroOrmInboxOutboxTransportEvent', () => {
         nested: { deep: { value: 'nested' } },
       };
 
-      const event = new MikroOrmInboxOutboxTransportEvent().create(
+      const event = new MikroOrmOutboxTransportEvent().create(
         'JsonTest',
         complexPayload,
         Date.now() + 60000,
@@ -111,13 +111,13 @@ describe('MikroOrmInboxOutboxTransportEvent', () => {
       await orm.em.flush();
       orm.em.clear();
 
-      const retrieved = await orm.em.findOne(MikroOrmInboxOutboxTransportEvent, { eventName: 'JsonTest' });
+      const retrieved = await orm.em.findOne(MikroOrmOutboxTransportEvent, { eventName: 'JsonTest' });
 
       expect(retrieved!.eventPayload).toEqual(complexPayload);
     });
 
     it('should persist deliveredToListeners as JSON array', async () => {
-      const event = new MikroOrmInboxOutboxTransportEvent().create(
+      const event = new MikroOrmOutboxTransportEvent().create(
         'ListenersTest',
         {},
         Date.now() + 60000,
@@ -129,14 +129,14 @@ describe('MikroOrmInboxOutboxTransportEvent', () => {
       await orm.em.flush();
       orm.em.clear();
 
-      const retrieved = await orm.em.findOne(MikroOrmInboxOutboxTransportEvent, { eventName: 'ListenersTest' });
+      const retrieved = await orm.em.findOne(MikroOrmOutboxTransportEvent, { eventName: 'ListenersTest' });
 
       expect(retrieved!.deliveredToListeners).toEqual(['listener1', 'listener2']);
     });
 
     it('should generate auto-increment id on persist', async () => {
-      const event1 = new MikroOrmInboxOutboxTransportEvent().create('Event1', {}, Date.now() + 60000, Date.now() + 5000);
-      const event2 = new MikroOrmInboxOutboxTransportEvent().create('Event2', {}, Date.now() + 60000, Date.now() + 5000);
+      const event1 = new MikroOrmOutboxTransportEvent().create('Event1', {}, Date.now() + 60000, Date.now() + 5000);
+      const event2 = new MikroOrmOutboxTransportEvent().create('Event2', {}, Date.now() + 60000, Date.now() + 5000);
 
       orm.em.persist([event1, event2]);
       await orm.em.flush();
@@ -150,14 +150,14 @@ describe('MikroOrmInboxOutboxTransportEvent', () => {
   describe('querying', () => {
     it('should find events by readyToRetryAfter', async () => {
       const now = Date.now();
-      const pastEvent = new MikroOrmInboxOutboxTransportEvent().create('PastEvent', {}, now + 60000, now - 1000);
-      const futureEvent = new MikroOrmInboxOutboxTransportEvent().create('FutureEvent', {}, now + 60000, now + 60000);
+      const pastEvent = new MikroOrmOutboxTransportEvent().create('PastEvent', {}, now + 60000, now - 1000);
+      const futureEvent = new MikroOrmOutboxTransportEvent().create('FutureEvent', {}, now + 60000, now + 60000);
 
       orm.em.persist([pastEvent, futureEvent]);
       await orm.em.flush();
       orm.em.clear();
 
-      const readyEvents = await orm.em.find(MikroOrmInboxOutboxTransportEvent, {
+      const readyEvents = await orm.em.find(MikroOrmOutboxTransportEvent, {
         readyToRetryAfter: { $lte: now },
       });
 
@@ -167,7 +167,7 @@ describe('MikroOrmInboxOutboxTransportEvent', () => {
 
     it('should respect limit when querying', async () => {
       const events = Array.from({ length: 5 }, (_, i) =>
-        new MikroOrmInboxOutboxTransportEvent().create(`Event${i}`, {}, Date.now() + 60000, Date.now() - 1000)
+        new MikroOrmOutboxTransportEvent().create(`Event${i}`, {}, Date.now() + 60000, Date.now() - 1000)
       );
 
       orm.em.persist(events);
@@ -175,7 +175,7 @@ describe('MikroOrmInboxOutboxTransportEvent', () => {
       orm.em.clear();
 
       const limitedEvents = await orm.em.find(
-        MikroOrmInboxOutboxTransportEvent,
+        MikroOrmOutboxTransportEvent,
         { readyToRetryAfter: { $lte: Date.now() } },
         { limit: 3 },
       );
@@ -186,7 +186,7 @@ describe('MikroOrmInboxOutboxTransportEvent', () => {
 
   describe('update', () => {
     it('should update readyToRetryAfter', async () => {
-      const event = new MikroOrmInboxOutboxTransportEvent().create('UpdateTest', {}, Date.now() + 60000, Date.now() - 1000);
+      const event = new MikroOrmOutboxTransportEvent().create('UpdateTest', {}, Date.now() + 60000, Date.now() - 1000);
 
       orm.em.persist(event);
       await orm.em.flush();
@@ -196,7 +196,7 @@ describe('MikroOrmInboxOutboxTransportEvent', () => {
       await orm.em.flush();
       orm.em.clear();
 
-      const retrieved = await orm.em.findOne(MikroOrmInboxOutboxTransportEvent, { eventName: 'UpdateTest' });
+      const retrieved = await orm.em.findOne(MikroOrmOutboxTransportEvent, { eventName: 'UpdateTest' });
 
       expect(retrieved!.readyToRetryAfter).toBe(newRetryAfter);
     });
@@ -204,7 +204,7 @@ describe('MikroOrmInboxOutboxTransportEvent', () => {
 
   describe('delete', () => {
     it('should delete an event', async () => {
-      const event = new MikroOrmInboxOutboxTransportEvent().create('DeleteTest', {}, Date.now() + 60000, Date.now() + 5000);
+      const event = new MikroOrmOutboxTransportEvent().create('DeleteTest', {}, Date.now() + 60000, Date.now() + 5000);
 
       orm.em.persist(event);
       await orm.em.flush();
@@ -213,7 +213,7 @@ describe('MikroOrmInboxOutboxTransportEvent', () => {
       await orm.em.flush();
       orm.em.clear();
 
-      const retrieved = await orm.em.findOne(MikroOrmInboxOutboxTransportEvent, { eventName: 'DeleteTest' });
+      const retrieved = await orm.em.findOne(MikroOrmOutboxTransportEvent, { eventName: 'DeleteTest' });
 
       expect(retrieved).toBeNull();
     });

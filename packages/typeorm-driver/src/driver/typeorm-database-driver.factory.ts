@@ -1,4 +1,4 @@
-import { DatabaseDriver, EventConfigurationResolverContract, EventListener } from '@nestixis/nestjs-inbox-outbox';
+import { DatabaseDriver, EventConfigurationResolverContract, EventListener } from '@fullstackhouse/nestjs-outbox';
 import { DataSource } from 'typeorm';
 import { TypeORMDatabaseDriver } from './typeorm.database-driver';
 

@@ -1,8 +1,8 @@
 import 'reflect-metadata';
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { DataSource, Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
-import { EventConfigurationResolverContract } from '@nestixis/nestjs-inbox-outbox';
-import { TypeOrmInboxOutboxTransportEvent } from '../model/typeorm-inbox-outbox-transport-event.model';
+import { EventConfigurationResolverContract } from '@fullstackhouse/nestjs-outbox';
+import { TypeOrmOutboxTransportEvent } from '../model/typeorm-outbox-transport-event.model';
 import { TypeORMDatabaseDriver } from '../driver/typeorm.database-driver';
 import { createTestDatabase, dropTestDatabase, BASE_CONNECTION } from './test-utils';
 
@@ -39,7 +39,7 @@ describe('TypeORMDatabaseDriver', () => {
       username: BASE_CONNECTION.user,
       password: BASE_CONNECTION.password,
       database: dbName,
-      entities: [TypeOrmInboxOutboxTransportEvent, TestEntity],
+      entities: [TypeOrmOutboxTransportEvent, TestEntity],
       synchronize: true,
     });
     await dataSource.initialize();
@@ -51,22 +51,22 @@ describe('TypeORMDatabaseDriver', () => {
   });
 
   beforeEach(async () => {
-    await dataSource.getRepository(TypeOrmInboxOutboxTransportEvent).clear();
+    await dataSource.getRepository(TypeOrmOutboxTransportEvent).clear();
     await dataSource.getRepository(TestEntity).clear();
   });
 
-  describe('createInboxOutboxTransportEvent', () => {
+  describe('createOutboxTransportEvent', () => {
     it('should create a transport event', () => {
       const driver = new TypeORMDatabaseDriver(dataSource, createEventConfigResolver());
 
-      const event = driver.createInboxOutboxTransportEvent(
+      const event = driver.createOutboxTransportEvent(
         'TestEvent',
         { data: 'test' },
         Date.now() + 60000,
         Date.now() + 5000,
       );
 
-      expect(event).toBeInstanceOf(TypeOrmInboxOutboxTransportEvent);
+      expect(event).toBeInstanceOf(TypeOrmOutboxTransportEvent);
       expect(event.eventName).toBe('TestEvent');
       expect(event.eventPayload).toEqual({ data: 'test' });
     });
@@ -76,7 +76,7 @@ describe('TypeORMDatabaseDriver', () => {
     it('should queue entity for persistence', async () => {
       const driver = new TypeORMDatabaseDriver(dataSource, createEventConfigResolver());
 
-      const event = driver.createInboxOutboxTransportEvent(
+      const event = driver.createOutboxTransportEvent(
         'TestEvent',
         { data: 'test' },
         Date.now() + 60000,
@@ -86,7 +86,7 @@ describe('TypeORMDatabaseDriver', () => {
       await driver.persist(event);
       await driver.flush();
 
-      const retrieved = await dataSource.getRepository(TypeOrmInboxOutboxTransportEvent).findOneBy({ eventName: 'TestEvent' });
+      const retrieved = await dataSource.getRepository(TypeOrmOutboxTransportEvent).findOneBy({ eventName: 'TestEvent' });
       expect(retrieved).toBeDefined();
     });
 
@@ -96,7 +96,7 @@ describe('TypeORMDatabaseDriver', () => {
       const entity = new TestEntity();
       entity.name = 'Test';
 
-      const event = driver.createInboxOutboxTransportEvent(
+      const event = driver.createOutboxTransportEvent(
         'TestEvent',
         {},
         Date.now() + 60000,
@@ -108,7 +108,7 @@ describe('TypeORMDatabaseDriver', () => {
       await driver.flush();
 
       const retrievedEntity = await dataSource.getRepository(TestEntity).findOneBy({ name: 'Test' });
-      const retrievedEvent = await dataSource.getRepository(TypeOrmInboxOutboxTransportEvent).findOneBy({ eventName: 'TestEvent' });
+      const retrievedEvent = await dataSource.getRepository(TypeOrmOutboxTransportEvent).findOneBy({ eventName: 'TestEvent' });
 
       expect(retrievedEntity).toBeDefined();
       expect(retrievedEvent).toBeDefined();
@@ -119,7 +119,7 @@ describe('TypeORMDatabaseDriver', () => {
     it('should queue entity for removal', async () => {
       const driver = new TypeORMDatabaseDriver(dataSource, createEventConfigResolver());
 
-      const event = driver.createInboxOutboxTransportEvent(
+      const event = driver.createOutboxTransportEvent(
         'RemoveTest',
         {},
         Date.now() + 60000,
@@ -129,14 +129,14 @@ describe('TypeORMDatabaseDriver', () => {
       await driver.persist(event);
       await driver.flush();
 
-      const eventToRemove = await dataSource.getRepository(TypeOrmInboxOutboxTransportEvent).findOneBy({ eventName: 'RemoveTest' });
+      const eventToRemove = await dataSource.getRepository(TypeOrmOutboxTransportEvent).findOneBy({ eventName: 'RemoveTest' });
       expect(eventToRemove).toBeDefined();
 
       const removeDriver = new TypeORMDatabaseDriver(dataSource, createEventConfigResolver());
       await removeDriver.remove(eventToRemove!);
       await removeDriver.flush();
 
-      const removed = await dataSource.getRepository(TypeOrmInboxOutboxTransportEvent).findOneBy({ eventName: 'RemoveTest' });
+      const removed = await dataSource.getRepository(TypeOrmOutboxTransportEvent).findOneBy({ eventName: 'RemoveTest' });
       expect(removed).toBeNull();
     });
   });
@@ -145,31 +145,31 @@ describe('TypeORMDatabaseDriver', () => {
     it('should persist all queued entities atomically', async () => {
       const driver = new TypeORMDatabaseDriver(dataSource, createEventConfigResolver());
 
-      const event1 = driver.createInboxOutboxTransportEvent('Event1', {}, Date.now() + 60000, Date.now() + 5000);
-      const event2 = driver.createInboxOutboxTransportEvent('Event2', {}, Date.now() + 60000, Date.now() + 5000);
+      const event1 = driver.createOutboxTransportEvent('Event1', {}, Date.now() + 60000, Date.now() + 5000);
+      const event2 = driver.createOutboxTransportEvent('Event2', {}, Date.now() + 60000, Date.now() + 5000);
 
       await driver.persist(event1);
       await driver.persist(event2);
 
-      const beforeFlush = await dataSource.getRepository(TypeOrmInboxOutboxTransportEvent).find();
+      const beforeFlush = await dataSource.getRepository(TypeOrmOutboxTransportEvent).find();
       expect(beforeFlush).toHaveLength(0);
 
       await driver.flush();
 
-      const afterFlush = await dataSource.getRepository(TypeOrmInboxOutboxTransportEvent).find();
+      const afterFlush = await dataSource.getRepository(TypeOrmOutboxTransportEvent).find();
       expect(afterFlush).toHaveLength(2);
     });
 
     it('should clear queued entities after flush', async () => {
       const driver = new TypeORMDatabaseDriver(dataSource, createEventConfigResolver());
 
-      const event = driver.createInboxOutboxTransportEvent('ClearTest', {}, Date.now() + 60000, Date.now() + 5000);
+      const event = driver.createOutboxTransportEvent('ClearTest', {}, Date.now() + 60000, Date.now() + 5000);
       await driver.persist(event);
       await driver.flush();
 
       await driver.flush();
 
-      const events = await dataSource.getRepository(TypeOrmInboxOutboxTransportEvent).find();
+      const events = await dataSource.getRepository(TypeOrmOutboxTransportEvent).find();
       expect(events).toHaveLength(1);
     });
   });
@@ -178,10 +178,10 @@ describe('TypeORMDatabaseDriver', () => {
     it('should find events ready to retry', async () => {
       const now = Date.now();
 
-      const readyEvent = new TypeOrmInboxOutboxTransportEvent().create('ReadyEvent', {}, now + 60000, now - 1000);
-      const notReadyEvent = new TypeOrmInboxOutboxTransportEvent().create('NotReadyEvent', {}, now + 60000, now + 60000);
+      const readyEvent = new TypeOrmOutboxTransportEvent().create('ReadyEvent', {}, now + 60000, now - 1000);
+      const notReadyEvent = new TypeOrmOutboxTransportEvent().create('NotReadyEvent', {}, now + 60000, now + 60000);
 
-      await dataSource.getRepository(TypeOrmInboxOutboxTransportEvent).save([readyEvent, notReadyEvent]);
+      await dataSource.getRepository(TypeOrmOutboxTransportEvent).save([readyEvent, notReadyEvent]);
 
       const driver = new TypeORMDatabaseDriver(dataSource, createEventConfigResolver(10000));
 
@@ -195,8 +195,8 @@ describe('TypeORMDatabaseDriver', () => {
       const now = Date.now();
       const originalRetryAfter = now - 1000;
 
-      const event = new TypeOrmInboxOutboxTransportEvent().create('ExtendTest', {}, now + 60000, originalRetryAfter);
-      await dataSource.getRepository(TypeOrmInboxOutboxTransportEvent).save(event);
+      const event = new TypeOrmOutboxTransportEvent().create('ExtendTest', {}, now + 60000, originalRetryAfter);
+      await dataSource.getRepository(TypeOrmOutboxTransportEvent).save(event);
 
       const ttl = 10000;
       const driver = new TypeORMDatabaseDriver(dataSource, createEventConfigResolver(ttl));
@@ -206,7 +206,7 @@ describe('TypeORMDatabaseDriver', () => {
       expect(events).toHaveLength(1);
       expect(events[0].readyToRetryAfter).toBeGreaterThan(now);
 
-      const persisted = await dataSource.getRepository(TypeOrmInboxOutboxTransportEvent).findOneBy({ eventName: 'ExtendTest' });
+      const persisted = await dataSource.getRepository(TypeOrmOutboxTransportEvent).findOneBy({ eventName: 'ExtendTest' });
       expect(Number(persisted!.readyToRetryAfter)).toBeGreaterThan(now);
     });
 
@@ -214,9 +214,9 @@ describe('TypeORMDatabaseDriver', () => {
       const now = Date.now();
 
       const events = Array.from({ length: 5 }, (_, i) =>
-        new TypeOrmInboxOutboxTransportEvent().create(`Event${i}`, {}, now + 60000, now - 1000)
+        new TypeOrmOutboxTransportEvent().create(`Event${i}`, {}, now + 60000, now - 1000)
       );
-      await dataSource.getRepository(TypeOrmInboxOutboxTransportEvent).save(events);
+      await dataSource.getRepository(TypeOrmOutboxTransportEvent).save(events);
 
       const driver = new TypeORMDatabaseDriver(dataSource, createEventConfigResolver());
 
@@ -226,8 +226,8 @@ describe('TypeORMDatabaseDriver', () => {
     });
 
     it('should return empty array when no events are ready', async () => {
-      const event = new TypeOrmInboxOutboxTransportEvent().create('FutureEvent', {}, Date.now() + 60000, Date.now() + 60000);
-      await dataSource.getRepository(TypeOrmInboxOutboxTransportEvent).save(event);
+      const event = new TypeOrmOutboxTransportEvent().create('FutureEvent', {}, Date.now() + 60000, Date.now() + 60000);
+      await dataSource.getRepository(TypeOrmOutboxTransportEvent).save(event);
 
       const driver = new TypeORMDatabaseDriver(dataSource, createEventConfigResolver());
 
@@ -240,9 +240,9 @@ describe('TypeORMDatabaseDriver', () => {
       const now = Date.now();
 
       const events = Array.from({ length: 10 }, (_, i) =>
-        new TypeOrmInboxOutboxTransportEvent().create(`ConcurrentEvent${i}`, {}, now + 60000, now - 1000)
+        new TypeOrmOutboxTransportEvent().create(`ConcurrentEvent${i}`, {}, now + 60000, now - 1000)
       );
-      await dataSource.getRepository(TypeOrmInboxOutboxTransportEvent).save(events);
+      await dataSource.getRepository(TypeOrmOutboxTransportEvent).save(events);
 
       const driver1 = new TypeORMDatabaseDriver(dataSource, createEventConfigResolver());
       const driver2 = new TypeORMDatabaseDriver(dataSource, createEventConfigResolver());

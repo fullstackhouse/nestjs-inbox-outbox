@@ -2,8 +2,8 @@ import 'reflect-metadata';
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { MikroORM, Entity, PrimaryKey, Property } from '@mikro-orm/core';
 import { PostgreSqlDriver } from '@mikro-orm/postgresql';
-import { EventConfigurationResolverContract } from '@nestixis/nestjs-inbox-outbox';
-import { MikroOrmInboxOutboxTransportEvent } from '../model/mikroorm-inbox-outbox-transport-event.model';
+import { EventConfigurationResolverContract } from '@fullstackhouse/nestjs-outbox';
+import { MikroOrmOutboxTransportEvent } from '../model/mikroorm-outbox-transport-event.model';
 import { MikroORMDatabaseDriver } from '../driver/mikroorm.database-driver';
 import { createTestDatabase, dropTestDatabase } from './test-utils';
 
@@ -40,7 +40,7 @@ describe('MikroORMDatabaseDriver', () => {
       user: 'postgres',
       password: 'postgres',
       dbName,
-      entities: [MikroOrmInboxOutboxTransportEvent, TestEntity],
+      entities: [MikroOrmOutboxTransportEvent, TestEntity],
       allowGlobalContext: true,
     });
     await orm.getSchemaGenerator().createSchema();
@@ -52,24 +52,24 @@ describe('MikroORMDatabaseDriver', () => {
   });
 
   beforeEach(async () => {
-    await orm.em.nativeDelete(MikroOrmInboxOutboxTransportEvent, {});
+    await orm.em.nativeDelete(MikroOrmOutboxTransportEvent, {});
     await orm.em.nativeDelete(TestEntity, {});
     orm.em.clear();
   });
 
-  describe('createInboxOutboxTransportEvent', () => {
+  describe('createOutboxTransportEvent', () => {
     it('should create a transport event', () => {
       const em = orm.em.fork();
       const driver = new MikroORMDatabaseDriver(em, createEventConfigResolver());
 
-      const event = driver.createInboxOutboxTransportEvent(
+      const event = driver.createOutboxTransportEvent(
         'TestEvent',
         { data: 'test' },
         Date.now() + 60000,
         Date.now() + 5000,
       );
 
-      expect(event).toBeInstanceOf(MikroOrmInboxOutboxTransportEvent);
+      expect(event).toBeInstanceOf(MikroOrmOutboxTransportEvent);
       expect(event.eventName).toBe('TestEvent');
       expect(event.eventPayload).toEqual({ data: 'test' });
     });
@@ -80,7 +80,7 @@ describe('MikroORMDatabaseDriver', () => {
       const em = orm.em.fork();
       const driver = new MikroORMDatabaseDriver(em, createEventConfigResolver());
 
-      const event = driver.createInboxOutboxTransportEvent(
+      const event = driver.createOutboxTransportEvent(
         'TestEvent',
         { data: 'test' },
         Date.now() + 60000,
@@ -91,7 +91,7 @@ describe('MikroORMDatabaseDriver', () => {
       await driver.flush();
 
       const freshEm = orm.em.fork();
-      const retrieved = await freshEm.findOne(MikroOrmInboxOutboxTransportEvent, { eventName: 'TestEvent' });
+      const retrieved = await freshEm.findOne(MikroOrmOutboxTransportEvent, { eventName: 'TestEvent' });
       expect(retrieved).toBeDefined();
     });
 
@@ -102,7 +102,7 @@ describe('MikroORMDatabaseDriver', () => {
       const entity = new TestEntity();
       entity.name = 'Test';
 
-      const event = driver.createInboxOutboxTransportEvent(
+      const event = driver.createOutboxTransportEvent(
         'TestEvent',
         {},
         Date.now() + 60000,
@@ -115,7 +115,7 @@ describe('MikroORMDatabaseDriver', () => {
 
       const freshEm = orm.em.fork();
       const retrievedEntity = await freshEm.findOne(TestEntity, { name: 'Test' });
-      const retrievedEvent = await freshEm.findOne(MikroOrmInboxOutboxTransportEvent, { eventName: 'TestEvent' });
+      const retrievedEvent = await freshEm.findOne(MikroOrmOutboxTransportEvent, { eventName: 'TestEvent' });
 
       expect(retrievedEntity).toBeDefined();
       expect(retrievedEvent).toBeDefined();
@@ -127,7 +127,7 @@ describe('MikroORMDatabaseDriver', () => {
       const em = orm.em.fork();
       const driver = new MikroORMDatabaseDriver(em, createEventConfigResolver());
 
-      const event = driver.createInboxOutboxTransportEvent(
+      const event = driver.createOutboxTransportEvent(
         'RemoveTest',
         {},
         Date.now() + 60000,
@@ -138,7 +138,7 @@ describe('MikroORMDatabaseDriver', () => {
       await driver.flush();
 
       const freshEm = orm.em.fork();
-      const eventToRemove = await freshEm.findOne(MikroOrmInboxOutboxTransportEvent, { eventName: 'RemoveTest' });
+      const eventToRemove = await freshEm.findOne(MikroOrmOutboxTransportEvent, { eventName: 'RemoveTest' });
       expect(eventToRemove).toBeDefined();
 
       const removeDriver = new MikroORMDatabaseDriver(freshEm, createEventConfigResolver());
@@ -146,7 +146,7 @@ describe('MikroORMDatabaseDriver', () => {
       await removeDriver.flush();
 
       const checkEm = orm.em.fork();
-      const removed = await checkEm.findOne(MikroOrmInboxOutboxTransportEvent, { eventName: 'RemoveTest' });
+      const removed = await checkEm.findOne(MikroOrmOutboxTransportEvent, { eventName: 'RemoveTest' });
       expect(removed).toBeNull();
     });
   });
@@ -156,20 +156,20 @@ describe('MikroORMDatabaseDriver', () => {
       const em = orm.em.fork();
       const driver = new MikroORMDatabaseDriver(em, createEventConfigResolver());
 
-      const event1 = driver.createInboxOutboxTransportEvent('Event1', {}, Date.now() + 60000, Date.now() + 5000);
-      const event2 = driver.createInboxOutboxTransportEvent('Event2', {}, Date.now() + 60000, Date.now() + 5000);
+      const event1 = driver.createOutboxTransportEvent('Event1', {}, Date.now() + 60000, Date.now() + 5000);
+      const event2 = driver.createOutboxTransportEvent('Event2', {}, Date.now() + 60000, Date.now() + 5000);
 
       await driver.persist(event1);
       await driver.persist(event2);
 
       const checkBeforeFlush = orm.em.fork();
-      const beforeFlush = await checkBeforeFlush.find(MikroOrmInboxOutboxTransportEvent, {});
+      const beforeFlush = await checkBeforeFlush.find(MikroOrmOutboxTransportEvent, {});
       expect(beforeFlush).toHaveLength(0);
 
       await driver.flush();
 
       const checkAfterFlush = orm.em.fork();
-      const afterFlush = await checkAfterFlush.find(MikroOrmInboxOutboxTransportEvent, {});
+      const afterFlush = await checkAfterFlush.find(MikroOrmOutboxTransportEvent, {});
       expect(afterFlush).toHaveLength(2);
     });
 
@@ -177,7 +177,7 @@ describe('MikroORMDatabaseDriver', () => {
       const em = orm.em.fork();
       const driver = new MikroORMDatabaseDriver(em, createEventConfigResolver());
 
-      const event = driver.createInboxOutboxTransportEvent('ClearTest', {}, Date.now() + 60000, Date.now() + 5000);
+      const event = driver.createOutboxTransportEvent('ClearTest', {}, Date.now() + 60000, Date.now() + 5000);
       await driver.persist(event);
       await driver.flush();
 
@@ -191,8 +191,8 @@ describe('MikroORMDatabaseDriver', () => {
       const setupEm = orm.em.fork();
       const now = Date.now();
 
-      const readyEvent = new MikroOrmInboxOutboxTransportEvent().create('ReadyEvent', {}, now + 60000, now - 1000);
-      const notReadyEvent = new MikroOrmInboxOutboxTransportEvent().create('NotReadyEvent', {}, now + 60000, now + 60000);
+      const readyEvent = new MikroOrmOutboxTransportEvent().create('ReadyEvent', {}, now + 60000, now - 1000);
+      const notReadyEvent = new MikroOrmOutboxTransportEvent().create('NotReadyEvent', {}, now + 60000, now + 60000);
 
       setupEm.persist([readyEvent, notReadyEvent]);
       await setupEm.flush();
@@ -211,7 +211,7 @@ describe('MikroORMDatabaseDriver', () => {
       const now = Date.now();
       const originalRetryAfter = now - 1000;
 
-      const event = new MikroOrmInboxOutboxTransportEvent().create('ExtendTest', {}, now + 60000, originalRetryAfter);
+      const event = new MikroOrmOutboxTransportEvent().create('ExtendTest', {}, now + 60000, originalRetryAfter);
       setupEm.persist(event);
       await setupEm.flush();
 
@@ -225,7 +225,7 @@ describe('MikroORMDatabaseDriver', () => {
       expect(events[0].readyToRetryAfter).toBeGreaterThan(now);
 
       const checkEm = orm.em.fork();
-      const persisted = await checkEm.findOne(MikroOrmInboxOutboxTransportEvent, { eventName: 'ExtendTest' });
+      const persisted = await checkEm.findOne(MikroOrmOutboxTransportEvent, { eventName: 'ExtendTest' });
       expect(persisted!.readyToRetryAfter).toBeGreaterThan(now);
     });
 
@@ -234,7 +234,7 @@ describe('MikroORMDatabaseDriver', () => {
       const now = Date.now();
 
       const events = Array.from({ length: 5 }, (_, i) =>
-        new MikroOrmInboxOutboxTransportEvent().create(`Event${i}`, {}, now + 60000, now - 1000)
+        new MikroOrmOutboxTransportEvent().create(`Event${i}`, {}, now + 60000, now - 1000)
       );
       setupEm.persist(events);
       await setupEm.flush();
@@ -249,7 +249,7 @@ describe('MikroORMDatabaseDriver', () => {
 
     it('should return empty array when no events are ready', async () => {
       const setupEm = orm.em.fork();
-      const event = new MikroOrmInboxOutboxTransportEvent().create('FutureEvent', {}, Date.now() + 60000, Date.now() + 60000);
+      const event = new MikroOrmOutboxTransportEvent().create('FutureEvent', {}, Date.now() + 60000, Date.now() + 60000);
       setupEm.persist(event);
       await setupEm.flush();
 
@@ -266,7 +266,7 @@ describe('MikroORMDatabaseDriver', () => {
       const now = Date.now();
 
       const events = Array.from({ length: 10 }, (_, i) =>
-        new MikroOrmInboxOutboxTransportEvent().create(`ConcurrentEvent${i}`, {}, now + 60000, now - 1000)
+        new MikroOrmOutboxTransportEvent().create(`ConcurrentEvent${i}`, {}, now + 60000, now - 1000)
       );
       setupEm.persist(events);
       await setupEm.flush();

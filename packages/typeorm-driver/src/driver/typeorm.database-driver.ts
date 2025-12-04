@@ -1,6 +1,6 @@
-import { DatabaseDriver, EventConfigurationResolverContract, InboxOutboxTransportEvent } from '@nestixis/nestjs-inbox-outbox';
+import { DatabaseDriver, EventConfigurationResolverContract, OutboxTransportEvent } from '@fullstackhouse/nestjs-outbox';
 import { DataSource, LessThanOrEqual } from 'typeorm';
-import { TypeOrmInboxOutboxTransportEvent } from '../model/typeorm-inbox-outbox-transport-event.model';
+import { TypeOrmOutboxTransportEvent } from '../model/typeorm-outbox-transport-event.model';
   
 export class TypeORMDatabaseDriver implements DatabaseDriver {
  
@@ -10,14 +10,14 @@ export class TypeORMDatabaseDriver implements DatabaseDriver {
   
   constructor(private readonly dataSource: DataSource, private readonly eventConfigurationResolver: EventConfigurationResolverContract) {}
 
-  async findAndExtendReadyToRetryEvents(limit: number): Promise<InboxOutboxTransportEvent[]> {
+  async findAndExtendReadyToRetryEvents(limit: number): Promise<OutboxTransportEvent[]> {
 
     let events = [];
 
     await this.dataSource.transaction(async (transactionalEntityManager) => {
       const now = new Date();
       
-      events = await transactionalEntityManager.find(TypeOrmInboxOutboxTransportEvent, {
+      events = await transactionalEntityManager.find(TypeOrmOutboxTransportEvent, {
         where: {
           readyToRetryAfter: LessThanOrEqual(now.getTime())
         },
@@ -55,7 +55,7 @@ export class TypeORMDatabaseDriver implements DatabaseDriver {
     this.enetitiesToRemove = [];
   }
 
-  createInboxOutboxTransportEvent(eventName: string, eventPayload: any, expireAt: number, readyToRetryAfter: number | null): InboxOutboxTransportEvent {
-    return new TypeOrmInboxOutboxTransportEvent().create(eventName, eventPayload, expireAt, readyToRetryAfter);
+  createOutboxTransportEvent(eventName: string, eventPayload: any, expireAt: number, readyToRetryAfter: number | null): OutboxTransportEvent {
+    return new TypeOrmOutboxTransportEvent().create(eventName, eventPayload, expireAt, readyToRetryAfter);
   }
 }

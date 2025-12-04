@@ -2,22 +2,22 @@ import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit, Optional } f
 import { EMPTY, Subscription, catchError, concatMap, from, interval, merge, repeat } from 'rxjs';
 import { DATABASE_DRIVER_FACTORY_TOKEN, DatabaseDriverFactory } from '../driver/database-driver.factory';
 import { TransactionalEventEmitter } from '../emitter/transactional-event-emitter';
-import { InboxOutboxModuleOptions, MODULE_OPTIONS_TOKEN } from '../inbox-outbox.module-definition';
-import { InboxOutboxTransportEvent } from '../model/inbox-outbox-transport-event.interface';
-import { INBOX_OUTBOX_EVENT_PROCESSOR_TOKEN, InboxOutboxEventProcessorContract } from '../processor/inbox-outbox-event-processor.contract';
+import { OutboxModuleOptions, MODULE_OPTIONS_TOKEN } from '../outbox.module-definition';
+import { OutboxTransportEvent } from '../model/outbox-transport-event.interface';
+import { OUTBOX_EVENT_PROCESSOR_TOKEN, OutboxEventProcessorContract } from '../processor/outbox-event-processor.contract';
 import { EventConfigurationResolver } from '../resolver/event-configuration.resolver';
 import { EVENT_LISTENER_TOKEN, EventListener } from './event-listener.interface';
 
 @Injectable()
-export class RetryableInboxOutboxEventPoller implements OnModuleInit, OnModuleDestroy {
+export class RetryableOutboxEventPoller implements OnModuleInit, OnModuleDestroy {
   private subscription: Subscription | null = null;
   private inFlightProcessing: Set<Promise<unknown>> = new Set();
   private isShuttingDown = false;
 
   constructor(
-    @Inject(MODULE_OPTIONS_TOKEN) private options: InboxOutboxModuleOptions,
+    @Inject(MODULE_OPTIONS_TOKEN) private options: OutboxModuleOptions,
     @Inject(DATABASE_DRIVER_FACTORY_TOKEN) private databaseDriverFactory: DatabaseDriverFactory,
-    @Inject(INBOX_OUTBOX_EVENT_PROCESSOR_TOKEN) private inboxOutboxEventProcessor: InboxOutboxEventProcessorContract,
+    @Inject(OUTBOX_EVENT_PROCESSOR_TOKEN) private outboxEventProcessor: OutboxEventProcessorContract,
     private transactionalEventEmitter: TransactionalEventEmitter,
     private eventConfigurationResolver: EventConfigurationResolver,
     @Inject(Logger) private logger: Logger,
@@ -25,7 +25,7 @@ export class RetryableInboxOutboxEventPoller implements OnModuleInit, OnModuleDe
   ) {}
 
   async onModuleInit() {
-    this.logger.log(`Inbox options: retryEveryMilliseconds: ${this.options.retryEveryMilliseconds}, maxInboxOutboxTransportEventPerRetry: ${this.options.maxInboxOutboxTransportEventPerRetry}, events: ${JSON.stringify(this.options.events)}, driver: ${this.options.driverFactory.constructor.name}`);
+    this.logger.log(`Poller options: retryEveryMilliseconds: ${this.options.retryEveryMilliseconds}, maxOutboxTransportEventPerRetry: ${this.options.maxOutboxTransportEventPerRetry}, events: ${JSON.stringify(this.options.events)}, driver: ${this.options.driverFactory.constructor.name}`);
 
     if (this.eventListener) {
       try {
@@ -58,7 +58,7 @@ export class RetryableInboxOutboxEventPoller implements OnModuleInit, OnModuleDe
 
   async onModuleDestroy() {
     this.isShuttingDown = true;
-    this.logger.log('Shutting down RetryableInboxOutboxEventPoller...');
+    this.logger.log('Shutting down RetryableOutboxEventPoller...');
 
     if (this.subscription) {
       this.subscription.unsubscribe();
@@ -79,15 +79,15 @@ export class RetryableInboxOutboxEventPoller implements OnModuleInit, OnModuleDe
       this.logger.log('All in-flight events completed.');
     }
 
-    this.logger.log('RetryableInboxOutboxEventPoller shutdown complete.');
+    this.logger.log('RetryableOutboxEventPoller shutdown complete.');
   }
 
   async poolRetryableEvents() {
     try {
-      const maxInboxOutboxTransportEventPerRetry = this.options.maxInboxOutboxTransportEventPerRetry;
+      const maxOutboxTransportEventPerRetry = this.options.maxOutboxTransportEventPerRetry;
       const databaseDriver = this.databaseDriverFactory.create(this.eventConfigurationResolver);
 
-      const readyToRetryEvents = await databaseDriver.findAndExtendReadyToRetryEvents(maxInboxOutboxTransportEventPerRetry);
+      const readyToRetryEvents = await databaseDriver.findAndExtendReadyToRetryEvents(maxOutboxTransportEventPerRetry);
 
       if (readyToRetryEvents.length === 0) {
         return;
@@ -101,15 +101,15 @@ export class RetryableInboxOutboxEventPoller implements OnModuleInit, OnModuleDe
     }
   }
 
-  private async processAsynchronousRetryableEvents(inboxOutboxTransportEvents: InboxOutboxTransportEvent[]) {
-    const processingPromises = inboxOutboxTransportEvents.map((inboxOutboxTransportEvent) => {
-      const notDeliveredToListeners = this.transactionalEventEmitter.getListeners(inboxOutboxTransportEvent.eventName).filter((listener) => {
-        return !inboxOutboxTransportEvent.deliveredToListeners.includes(listener.getName());
+  private async processAsynchronousRetryableEvents(outboxTransportEvents: OutboxTransportEvent[]) {
+    const processingPromises = outboxTransportEvents.map((outboxTransportEvent) => {
+      const notDeliveredToListeners = this.transactionalEventEmitter.getListeners(outboxTransportEvent.eventName).filter((listener) => {
+        return !outboxTransportEvent.deliveredToListeners.includes(listener.getName());
       });
 
-      const processingPromise = this.inboxOutboxEventProcessor.process(
-        this.options.events.find((event) => event.name === inboxOutboxTransportEvent.eventName),
-        inboxOutboxTransportEvent,
+      const processingPromise = this.outboxEventProcessor.process(
+        this.options.events.find((event) => event.name === outboxTransportEvent.eventName),
+        outboxTransportEvent,
         notDeliveredToListeners,
       );
 

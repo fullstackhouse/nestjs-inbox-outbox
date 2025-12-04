@@ -1,9 +1,9 @@
-export { MigrationInboxOutbox1708527074 } from "./MigrationInboxOutbox1708527074";
-export { MigrationInboxOutbox1733250000 } from "./MigrationInboxOutbox1733250000";
-export { MigrationInboxOutbox1733300000 } from "./MigrationInboxOutbox1733300000";
+export { MigrationOutbox1708527074 } from "./MigrationOutbox1708527074";
+export { MigrationOutbox1733250000 } from "./MigrationOutbox1733250000";
+export { MigrationOutbox1733300000 } from "./MigrationOutbox1733300000";
 
-import { MigrationInboxOutbox1708527074 } from "./MigrationInboxOutbox1708527074";
-import { MigrationInboxOutbox1733250000 } from "./MigrationInboxOutbox1733250000";
-import { MigrationInboxOutbox1733300000 } from "./MigrationInboxOutbox1733300000";
+import { MigrationOutbox1708527074 } from "./MigrationOutbox1708527074";
+import { MigrationOutbox1733250000 } from "./MigrationOutbox1733250000";
+import { MigrationOutbox1733300000 } from "./MigrationOutbox1733300000";
 
-export const InboxOutboxMigrations = [MigrationInboxOutbox1708527074, MigrationInboxOutbox1733250000, MigrationInboxOutbox1733300000];
+export const OutboxMigrations = [MigrationOutbox1708527074, MigrationOutbox1733250000, MigrationOutbox1733300000];

@@ -1,5 +1,5 @@
 import { MikroORM } from '@mikro-orm/core';
-import { DatabaseDriver, EventConfigurationResolverContract, EventListener } from '@nestixis/nestjs-inbox-outbox';
+import { DatabaseDriver, EventConfigurationResolverContract, EventListener } from '@fullstackhouse/nestjs-outbox';
 import { PostgreSQLEventListener, PostgreSQLEventListenerOptions } from '../listener/postgresql-event-listener';
 import { MikroORMDatabaseDriver } from './mikroorm.database-driver';
 

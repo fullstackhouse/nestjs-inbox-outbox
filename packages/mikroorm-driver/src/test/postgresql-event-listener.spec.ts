@@ -7,7 +7,7 @@ import {
   PostgreSQLEventListener,
   DEFAULT_POSTGRESQL_EVENT_CHANNEL,
 } from '../listener/postgresql-event-listener';
-import { MikroOrmInboxOutboxTransportEvent } from '../model/mikroorm-inbox-outbox-transport-event.model';
+import { MikroOrmOutboxTransportEvent } from '../model/mikroorm-outbox-transport-event.model';
 import { BASE_CONNECTION, createTestDatabase, dropTestDatabase } from './test-utils';
 
 describe('PostgreSQLEventListener', () => {
@@ -23,7 +23,7 @@ describe('PostgreSQLEventListener', () => {
       driver: PostgreSqlDriver,
       ...BASE_CONNECTION,
       dbName,
-      entities: [MikroOrmInboxOutboxTransportEvent],
+      entities: [MikroOrmOutboxTransportEvent],
       allowGlobalContext: true,
     });
 
@@ -141,7 +141,7 @@ describe('PostgreSQLEventListener reconnection', () => {
       driver: PostgreSqlDriver,
       ...BASE_CONNECTION,
       dbName,
-      entities: [MikroOrmInboxOutboxTransportEvent],
+      entities: [MikroOrmOutboxTransportEvent],
       allowGlobalContext: true,
     });
   });
@@ -177,7 +177,7 @@ describe('PostgreSQLEventListener custom channel', () => {
       driver: PostgreSqlDriver,
       ...BASE_CONNECTION,
       dbName,
-      entities: [MikroOrmInboxOutboxTransportEvent],
+      entities: [MikroOrmOutboxTransportEvent],
       allowGlobalContext: true,
     });
 
