@@ -261,14 +261,10 @@ See existing drivers in `packages/` for reference. Contributions welcome via PR.
 
 ## Releasing
 
-Publishing to npm is done manually via CLI:
-
-```bash
-npx lerna version <version> --yes
-npm ci
-npm run build --workspaces
-npx lerna publish from-package --yes --no-private
-```
+Publishing to npm is automated via GitHub releases. Create a new release with a tag like `v2.1.0` and the workflow will:
+1. Extract version from the tag (strips `v` prefix)
+2. Update all package versions
+3. Build and publish to npm
 
 ## License
 
