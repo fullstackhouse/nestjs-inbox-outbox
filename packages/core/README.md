@@ -35,7 +35,7 @@ npm install @fullstackhouse/nestjs-outbox
 # Choose your ORM driver
 npm install @fullstackhouse/nestjs-outbox-typeorm-driver
 # or
-npm install @fullstackhouse/nestjs-outbox-mikroorm-driver
+npm install @fullstackhouse/nestjs-outbox-mikro-orm-driver
 ```
 
 ## Quick Start
@@ -204,7 +204,7 @@ LISTEN/NOTIFY is **enabled by default** when using the MikroORM driver with Post
 ```typescript
 import { MikroORM } from '@mikro-orm/core';
 import { OutboxModule } from '@fullstackhouse/nestjs-outbox';
-import { MikroORMDatabaseDriverFactory } from '@fullstackhouse/nestjs-outbox-mikroorm-driver';
+import { MikroORMDatabaseDriverFactory } from '@fullstackhouse/nestjs-outbox-mikro-orm-driver';
 
 @Module({
   imports: [

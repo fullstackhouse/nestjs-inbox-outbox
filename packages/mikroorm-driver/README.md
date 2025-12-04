@@ -1,6 +1,6 @@
 # NestJS Outbox MikroORM Driver
 
-[![npm version](https://badge.fury.io/js/%40fullstackhouse%2Fnestjs-outbox-mikroorm-driver.svg)](https://www.npmjs.com/package/@fullstackhouse/nestjs-outbox-mikroorm-driver)
+[![npm version](https://badge.fury.io/js/%40fullstackhouse%2Fnestjs-outbox-mikro-orm-driver.svg)](https://www.npmjs.com/package/@fullstackhouse/nestjs-outbox-mikro-orm-driver)
 
 MikroORM driver for [@fullstackhouse/nestjs-outbox](../core).
 
@@ -12,7 +12,7 @@ MikroORM driver for [@fullstackhouse/nestjs-outbox](../core).
 ## Installation
 
 ```bash
-npm install @fullstackhouse/nestjs-outbox-mikroorm-driver
+npm install @fullstackhouse/nestjs-outbox-mikro-orm-driver
 ```
 
 ## Quick Start
@@ -27,7 +27,7 @@ import {
   OutboxMigrations,
   MikroORMDatabaseDriverFactory,
   MikroOrmOutboxTransportEvent,
-} from '@fullstackhouse/nestjs-outbox-mikroorm-driver';
+} from '@fullstackhouse/nestjs-outbox-mikro-orm-driver';
 import { Module, OnApplicationBootstrap } from '@nestjs/common';
 
 export class TableMigrator implements OnApplicationBootstrap {

@@ -1,5 +1,5 @@
 {
-  "name": "@fullstackhouse/nestjs-outbox-mikroorm-driver",
+  "name": "@fullstackhouse/nestjs-outbox-mikro-orm-driver",
   "version": "1.0.1",
   "description": "This package provides a driver for the NestJS Outbox library that uses MikroORM to interact with the database.",
   "scripts": {
