@@ -58,32 +58,36 @@ export class OrderCreatedEvent implements OutboxEvent {
 ### 2. Create a Listener
 
 ```typescript
-import { Listener, IListener } from '@fullstackhouse/nestjs-outbox';
+import { Injectable } from '@nestjs/common';
+import { OnEvent } from '@fullstackhouse/nestjs-outbox';
 
-@Listener(OrderCreatedEvent.name)
-export class SendOrderConfirmationListener implements IListener<OrderCreatedEvent> {
+@Injectable()
+export class OrderNotificationListener {
   constructor(private readonly emailService: EmailService) {}
 
-  async handle(event: OrderCreatedEvent): Promise<void> {
+  @OnEvent(OrderCreatedEvent.name)
+  async handleOrderCreated(event: OrderCreatedEvent): Promise<void> {
     await this.emailService.sendOrderConfirmation(event.orderId);
   }
 }
 ```
 
-**Multiple events per listener:**
+**Multiple event handlers in one class:**
 
 ```typescript
-@Listener([OrderCreatedEvent.name, OrderUpdatedEvent.name])
-export class OrderNotificationListener
-  implements IListener<OrderCreatedEvent | OrderUpdatedEvent> {
+@Injectable()
+export class OrderNotificationListener {
+  @OnEvent(OrderCreatedEvent.name)
+  async handleOrderCreated(event: OrderCreatedEvent): Promise<void> {
+    // Handle order created
+  }
 
-  async handle(event: OrderCreatedEvent | OrderUpdatedEvent): Promise<void> {
-    // Handle both event types
+  @OnEvent(OrderUpdatedEvent.name)
+  async handleOrderUpdated(event: OrderUpdatedEvent): Promise<void> {
+    // Handle order updated
   }
 }
 ```
-
-> **Note:** Only group related events in a single listener. Unrelated events should have separate listeners.
 
 ### 3. Emit Events
 

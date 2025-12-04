@@ -5,7 +5,6 @@ export { TransactionalEventEmitter, TransactionalEventEmitterOperations } from "
 export * from "./outbox.module";
 export * from "./outbox.module-definition";
 export * from "./listener/contract/listener.interface";
-export * from "./listener/discovery/listener.decorator";
 export * from "./listener/discovery/on-event.decorator";
 export * from "./model/outbox-transport-event.interface";
 export * from "./poller/event-listener.interface";
