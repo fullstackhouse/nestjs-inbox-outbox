@@ -67,10 +67,10 @@ jobs:
         run: npm run build --workspace=@fullstackhouse/nestjs-outbox
 
       - name: Type check MikroORM driver
-        run: npm run build --workspace=@fullstackhouse/nestjs-outbox-mikroorm-driver
+        run: npm run build --workspace=@fullstackhouse/nestjs-outbox-mikro-orm-driver
 
       - name: Run MikroORM driver tests
-        run: npm test --workspace=@fullstackhouse/nestjs-outbox-mikroorm-driver
+        run: npm test --workspace=@fullstackhouse/nestjs-outbox-mikro-orm-driver
         env:
           PGHOST: localhost
           PGUSER: postgres

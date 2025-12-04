@@ -2,9 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ListenerDiscovery } from '../../listener/discovery/listener.discovery';
 import { TransactionalEventEmitter } from '../../emitter/transactional-event-emitter';
 import { OnEvent, ON_EVENT_METADATA_KEY } from '../../listener/discovery/on-event.decorator';
-import { Listener } from '../../listener/discovery/listener.decorator';
-import { REGISTRY_METADATA_KEY } from '../../listener/discovery/listener.registry';
-import { IListener } from '../../listener/contract/listener.interface';
 
 describe('ListenerDiscovery', () => {
   let mockEmitter: Partial<TransactionalEventEmitter>;
@@ -35,44 +32,7 @@ describe('ListenerDiscovery', () => {
     );
   });
 
-  describe('class-level @Listener decorator', () => {
-    it('should register class-level listener with single event', () => {
-      class TestListener implements IListener<any> {
-        handle = vi.fn();
-        getName = () => 'TestListener';
-      }
-      Reflect.defineMetadata(REGISTRY_METADATA_KEY, 'TestEvent', TestListener);
-
-      const instance = new TestListener();
-      mockDiscoveryService.getProviders.mockReturnValue([
-        { metatype: TestListener, instance },
-      ]);
-
-      discovery.onModuleInit();
-
-      expect(mockEmitter.addListener).toHaveBeenCalledWith('TestEvent', instance);
-    });
-
-    it('should register class-level listener with multiple events', () => {
-      class TestListener implements IListener<any> {
-        handle = vi.fn();
-        getName = () => 'TestListener';
-      }
-      Reflect.defineMetadata(REGISTRY_METADATA_KEY, ['Event1', 'Event2'], TestListener);
-
-      const instance = new TestListener();
-      mockDiscoveryService.getProviders.mockReturnValue([
-        { metatype: TestListener, instance },
-      ]);
-
-      discovery.onModuleInit();
-
-      expect(mockEmitter.addListener).toHaveBeenCalledWith('Event1', instance);
-      expect(mockEmitter.addListener).toHaveBeenCalledWith('Event2', instance);
-    });
-  });
-
-  describe('method-level @OnEvent decorator', () => {
+  describe('@OnEvent decorator', () => {
     it('should register method-level listeners', () => {
       class EventHandler {
         @OnEvent('TestEvent')
@@ -159,37 +119,8 @@ describe('ListenerDiscovery', () => {
     });
   });
 
-  describe('mixed class and method listeners', () => {
-    it('should register both class-level and method-level listeners', () => {
-      class ClassListener implements IListener<any> {
-        handle = vi.fn();
-        getName = () => 'ClassListener';
-      }
-      Reflect.defineMetadata(REGISTRY_METADATA_KEY, 'ClassEvent', ClassListener);
-
-      class MethodHandler {
-        @OnEvent('MethodEvent')
-        handleMethodEvent() {}
-      }
-
-      const classInstance = new ClassListener();
-      const methodInstance = new MethodHandler();
-
-      mockDiscoveryService.getProviders.mockReturnValue([
-        { metatype: ClassListener, instance: classInstance },
-        { metatype: MethodHandler, instance: methodInstance },
-      ]);
-
-      discovery.onModuleInit();
-
-      expect(mockEmitter.addListener).toHaveBeenCalledTimes(2);
-      expect(mockEmitter.addListener).toHaveBeenCalledWith('ClassEvent', classInstance);
-      expect(mockEmitter.addListener).toHaveBeenCalledWith('MethodEvent', expect.any(Object));
-    });
-  });
-
   describe('duplicate listener detection', () => {
-    it('should throw error for duplicate method listener names across classes', () => {
+    it('should allow same method names across different classes', () => {
       class FirstHandler {
         @OnEvent('Event1')
         handleEvent() {}
