@@ -53,13 +53,13 @@ export class ListenerDiscovery implements OnModuleInit {
       if (Array.isArray(eventsNames)) {
         eventsNames.forEach((eventName) => {
           this.transactionalEventEmitter.addListener(eventName, listener.instance);
-          this.logger.log(`Listener ${listener.metatype.name} has been registered for inbox outbox event ${eventName}`);
+          this.logger.log(`Listener ${listener.metatype.name} has been registered for outbox event ${eventName}`);
         });
       }
 
       if (!Array.isArray(eventsNames)) {
         this.transactionalEventEmitter.addListener(eventsNames, listener.instance);
-        this.logger.log(`Listener ${listener.metatype.name} has been registered for inbox outbox event ${eventsNames}`);
+        this.logger.log(`Listener ${listener.metatype.name} has been registered for outbox event ${eventsNames}`);
       }
     }
   }
@@ -88,7 +88,7 @@ export class ListenerDiscovery implements OnModuleInit {
 
         this.transactionalEventEmitter.addListener(metadata.eventName, adapter);
         this.logger.log(
-          `Method listener ${listenerName} has been registered for inbox outbox event ${metadata.eventName}`,
+          `Method listener ${listenerName} has been registered for outbox event ${metadata.eventName}`,
         );
       }
     }

@@ -25,7 +25,7 @@ export class RetryableOutboxEventPoller implements OnModuleInit, OnModuleDestroy
   ) {}
 
   async onModuleInit() {
-    this.logger.log(`Inbox options: retryEveryMilliseconds: ${this.options.retryEveryMilliseconds}, maxOutboxTransportEventPerRetry: ${this.options.maxOutboxTransportEventPerRetry}, events: ${JSON.stringify(this.options.events)}, driver: ${this.options.driverFactory.constructor.name}`);
+    this.logger.log(`Poller options: retryEveryMilliseconds: ${this.options.retryEveryMilliseconds}, maxOutboxTransportEventPerRetry: ${this.options.maxOutboxTransportEventPerRetry}, events: ${JSON.stringify(this.options.events)}, driver: ${this.options.driverFactory.constructor.name}`);
 
     if (this.eventListener) {
       try {
