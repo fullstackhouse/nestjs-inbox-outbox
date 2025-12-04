@@ -1,6 +1,6 @@
 import { EntityManager, LockMode } from '@mikro-orm/core';
-import { DatabaseDriver, EventConfigurationResolverContract, InboxOutboxTransportEvent } from '@nestixis/nestjs-inbox-outbox';
-import { MikroOrmInboxOutboxTransportEvent } from '../model/mikroorm-inbox-outbox-transport-event.model';
+import { DatabaseDriver, EventConfigurationResolverContract, OutboxTransportEvent } from '@fullstackhouse/nestjs-outbox';
+import { MikroOrmOutboxTransportEvent } from '../model/mikroorm-outbox-transport-event.model';
 
 export interface MikroORMDatabaseDriverOptions {
   clearAfterFlush?: boolean;
@@ -17,13 +17,13 @@ export class MikroORMDatabaseDriver implements DatabaseDriver {
     this.clearAfterFlush = options?.clearAfterFlush ?? true;
   }
 
-  async findAndExtendReadyToRetryEvents(limit: number): Promise<InboxOutboxTransportEvent[]> {
+  async findAndExtendReadyToRetryEvents(limit: number): Promise<OutboxTransportEvent[]> {
 
     let events = [];
 
     await this.em.transactional(async em => {
       const now = new Date();
-      events = await em.find(MikroOrmInboxOutboxTransportEvent, { readyToRetryAfter: { $lte: now.getTime() } }, {
+      events = await em.find(MikroOrmOutboxTransportEvent, { readyToRetryAfter: { $lte: now.getTime() } }, {
         limit,
         lockMode: LockMode.PESSIMISTIC_WRITE,
       });
@@ -55,7 +55,7 @@ export class MikroORMDatabaseDriver implements DatabaseDriver {
     }
   }
 
-  createInboxOutboxTransportEvent(eventName: string, eventPayload: any, expireAt: number, readyToRetryAfter: number | null): InboxOutboxTransportEvent {
-    return new MikroOrmInboxOutboxTransportEvent().create(eventName, eventPayload, expireAt, readyToRetryAfter);
+  createOutboxTransportEvent(eventName: string, eventPayload: any, expireAt: number, readyToRetryAfter: number | null): OutboxTransportEvent {
+    return new MikroOrmOutboxTransportEvent().create(eventName, eventPayload, expireAt, readyToRetryAfter);
   }
 }

@@ -1,7 +1,7 @@
 import { ConfigurableModuleBuilder } from '@nestjs/common';
 import { DatabaseDriverFactory } from './driver/database-driver.factory';
 
-export interface InboxOutboxModuleEventOptions {
+export interface OutboxModuleEventOptions {
   name: string;
   listeners: {
     expiresAtTTL: number;
@@ -18,14 +18,14 @@ export interface InboxOutboxModuleEventOptions {
   immediateProcessing?: boolean;
 }
 
-export interface InboxOutboxModuleOptions {
-  events: InboxOutboxModuleEventOptions[];
+export interface OutboxModuleOptions {
+  events: OutboxModuleEventOptions[];
   retryEveryMilliseconds: number;
-  maxInboxOutboxTransportEventPerRetry: number;
+  maxOutboxTransportEventPerRetry: number;
   driverFactory: DatabaseDriverFactory;
 }
 
-export const { ConfigurableModuleClass, MODULE_OPTIONS_TOKEN, ASYNC_OPTIONS_TYPE } = new ConfigurableModuleBuilder<InboxOutboxModuleOptions>()
+export const { ConfigurableModuleClass, MODULE_OPTIONS_TOKEN, ASYNC_OPTIONS_TYPE } = new ConfigurableModuleBuilder<OutboxModuleOptions>()
   .setExtras(
     {
       isGlobal: true,

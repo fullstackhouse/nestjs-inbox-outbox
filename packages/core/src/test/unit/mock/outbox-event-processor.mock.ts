@@ -1,6 +1,6 @@
 import { vi } from 'vitest';
 
-export const createMockedInboxOutboxEventProcessor = () => {
+export const createMockedOutboxEventProcessor = () => {
     return {
         process: vi.fn(),
     }

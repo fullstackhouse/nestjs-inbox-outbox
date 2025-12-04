@@ -3,8 +3,8 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { MikroORM } from '@mikro-orm/core';
 import { PostgreSqlDriver } from '@mikro-orm/postgresql';
 import { MySqlDriver } from '@mikro-orm/mysql';
-import { EventConfigurationResolverContract } from '@nestixis/nestjs-inbox-outbox';
-import { MikroOrmInboxOutboxTransportEvent } from '../model/mikroorm-inbox-outbox-transport-event.model';
+import { EventConfigurationResolverContract } from '@fullstackhouse/nestjs-outbox';
+import { MikroOrmOutboxTransportEvent } from '../model/mikroorm-outbox-transport-event.model';
 import { MikroORMDatabaseDriverFactory } from '../driver/mikroorm-database-driver.factory';
 import { MikroORMDatabaseDriver } from '../driver/mikroorm.database-driver';
 import { PostgreSQLEventListener } from '../listener/postgresql-event-listener';
@@ -34,7 +34,7 @@ describe('MikroORMDatabaseDriverFactory', () => {
       user: 'postgres',
       password: 'postgres',
       dbName,
-      entities: [MikroOrmInboxOutboxTransportEvent],
+      entities: [MikroOrmOutboxTransportEvent],
       allowGlobalContext: true,
     });
     await orm.getSchemaGenerator().createSchema();
@@ -59,8 +59,8 @@ describe('MikroORMDatabaseDriverFactory', () => {
       const driver1 = factory.create(createEventConfigResolver());
       const driver2 = factory.create(createEventConfigResolver());
 
-      const event1 = driver1.createInboxOutboxTransportEvent('Event1', {}, Date.now() + 60000, Date.now() + 5000);
-      const event2 = driver2.createInboxOutboxTransportEvent('Event2', {}, Date.now() + 60000, Date.now() + 5000);
+      const event1 = driver1.createOutboxTransportEvent('Event1', {}, Date.now() + 60000, Date.now() + 5000);
+      const event2 = driver2.createOutboxTransportEvent('Event2', {}, Date.now() + 60000, Date.now() + 5000);
 
       await driver1.persist(event1);
       await driver2.persist(event2);
@@ -69,7 +69,7 @@ describe('MikroORMDatabaseDriverFactory', () => {
       await driver2.flush();
 
       const checkEm = orm.em.fork();
-      const events = await checkEm.find(MikroOrmInboxOutboxTransportEvent, {});
+      const events = await checkEm.find(MikroOrmOutboxTransportEvent, {});
       expect(events).toHaveLength(2);
     });
 
@@ -79,19 +79,19 @@ describe('MikroORMDatabaseDriverFactory', () => {
       const driver1 = factory.create(createEventConfigResolver());
       const driver2 = factory.create(createEventConfigResolver());
 
-      const event = driver1.createInboxOutboxTransportEvent('IsolationTest', {}, Date.now() + 60000, Date.now() + 5000);
+      const event = driver1.createOutboxTransportEvent('IsolationTest', {}, Date.now() + 60000, Date.now() + 5000);
       await driver1.persist(event);
 
       await driver2.flush();
 
       const checkEm = orm.em.fork();
-      const events = await checkEm.find(MikroOrmInboxOutboxTransportEvent, { eventName: 'IsolationTest' });
+      const events = await checkEm.find(MikroOrmOutboxTransportEvent, { eventName: 'IsolationTest' });
       expect(events).toHaveLength(0);
 
       await driver1.flush();
 
       const checkEm2 = orm.em.fork();
-      const eventsAfter = await checkEm2.find(MikroOrmInboxOutboxTransportEvent, { eventName: 'IsolationTest' });
+      const eventsAfter = await checkEm2.find(MikroOrmOutboxTransportEvent, { eventName: 'IsolationTest' });
       expect(eventsAfter).toHaveLength(1);
     });
 
@@ -100,7 +100,7 @@ describe('MikroORMDatabaseDriverFactory', () => {
 
       const operations = Array.from({ length: 5 }, async (_, i) => {
         const driver = factory.create(createEventConfigResolver());
-        const event = driver.createInboxOutboxTransportEvent(`ConcurrentEvent${i}`, { index: i }, Date.now() + 60000, Date.now() + 5000);
+        const event = driver.createOutboxTransportEvent(`ConcurrentEvent${i}`, { index: i }, Date.now() + 60000, Date.now() + 5000);
         await driver.persist(event);
         await driver.flush();
         return event;
@@ -109,7 +109,7 @@ describe('MikroORMDatabaseDriverFactory', () => {
       await Promise.all(operations);
 
       const checkEm = orm.em.fork();
-      const events = await checkEm.find(MikroOrmInboxOutboxTransportEvent, {
+      const events = await checkEm.find(MikroOrmOutboxTransportEvent, {
         eventName: { $like: 'ConcurrentEvent%' },
       });
 
@@ -192,7 +192,7 @@ describe('MikroORMDatabaseDriverFactory', () => {
         user: MYSQL_CONNECTION.user,
         password: MYSQL_CONNECTION.password,
         dbName: mysqlDbName,
-        entities: [MikroOrmInboxOutboxTransportEvent],
+        entities: [MikroOrmOutboxTransportEvent],
         allowGlobalContext: true,
       });
 

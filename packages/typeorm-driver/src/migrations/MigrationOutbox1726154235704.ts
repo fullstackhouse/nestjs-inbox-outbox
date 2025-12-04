@@ -1,12 +1,12 @@
 import { MigrationInterface, QueryRunner, Table } from "typeorm";
 
-export class MigrationInboxOutbox1726154235704 implements MigrationInterface {
+export class MigrationOutbox1726154235704 implements MigrationInterface {
     name?: string;
     transaction?: boolean;
   
     async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.createTable(new Table({
-            name: 'inbox_outbox_transport_event',
+            name: 'outbox_transport_event',
             columns: [
                 {
                     name: 'id',

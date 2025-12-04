@@ -5,9 +5,9 @@ import { Injectable, Module } from '@nestjs/common';
 import {
   TransactionalEventEmitter,
   TransactionalEventEmitterOperations,
-  InboxOutboxEvent,
+  OutboxEvent,
   OnEvent,
-} from '@nestixis/nestjs-inbox-outbox';
+} from '@fullstackhouse/nestjs-outbox';
 import { createTestApp, cleanupTestApp, TestContext } from './test-utils';
 
 @Entity({ tableName: 'users' })
@@ -22,7 +22,7 @@ class User {
   name: string;
 }
 
-class UserCreatedEvent extends InboxOutboxEvent {
+class UserCreatedEvent extends OutboxEvent {
   public readonly name = 'UserCreated';
 
   constructor(
@@ -33,7 +33,7 @@ class UserCreatedEvent extends InboxOutboxEvent {
   }
 }
 
-class UserDeletedEvent extends InboxOutboxEvent {
+class UserDeletedEvent extends OutboxEvent {
   public readonly name = 'UserDeleted';
 
   constructor(public readonly userId: number) {
@@ -41,7 +41,7 @@ class UserDeletedEvent extends InboxOutboxEvent {
   }
 }
 
-class UserUpdatedEvent extends InboxOutboxEvent {
+class UserUpdatedEvent extends OutboxEvent {
   public readonly name = 'UserUpdated';
 
   constructor(

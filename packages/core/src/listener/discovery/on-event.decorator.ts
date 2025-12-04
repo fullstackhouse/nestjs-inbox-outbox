@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 
-export const ON_EVENT_METADATA_KEY = 'inbox-outbox-on-event';
+export const ON_EVENT_METADATA_KEY = 'outbox-on-event';
 
 export interface OnEventMetadata {
   eventName: string;

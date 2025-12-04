@@ -4,8 +4,8 @@ import { MySqlDriver } from '@mikro-orm/mysql';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, DynamicModule, Type } from '@nestjs/common';
-import { InboxOutboxModule, InboxOutboxModuleEventOptions } from '@nestixis/nestjs-inbox-outbox';
-import { MikroOrmInboxOutboxTransportEvent } from '../model/mikroorm-inbox-outbox-transport-event.model';
+import { OutboxModule, OutboxModuleEventOptions } from '@fullstackhouse/nestjs-outbox';
+import { MikroOrmOutboxTransportEvent } from '../model/mikroorm-outbox-transport-event.model';
 import { MikroORMDatabaseDriverFactory } from '../driver/mikroorm-database-driver.factory';
 import { randomUUID } from 'crypto';
 import { Client } from 'pg';
@@ -14,11 +14,11 @@ import * as mysql from 'mysql2/promise';
 export type DatabaseType = 'postgresql' | 'mysql';
 
 export interface TestAppConfig {
-  events: InboxOutboxModuleEventOptions[];
+  events: OutboxModuleEventOptions[];
   additionalModules?: DynamicModule[];
   additionalEntities?: Type[];
   retryEveryMilliseconds?: number;
-  maxInboxOutboxTransportEventPerRetry?: number;
+  maxOutboxTransportEventPerRetry?: number;
   databaseType?: DatabaseType;
   useContext?: boolean;
 }
@@ -99,18 +99,18 @@ export async function createTestApp(config: TestAppConfig): Promise<TestContext>
         user: MYSQL_CONNECTION.user,
         password: MYSQL_CONNECTION.password,
         dbName,
-        entities: [MikroOrmInboxOutboxTransportEvent, ...(config.additionalEntities || [])],
+        entities: [MikroOrmOutboxTransportEvent, ...(config.additionalEntities || [])],
         allowGlobalContext: true,
       })
     : MikroOrmModule.forRoot({
         driver: PostgreSqlDriver,
         ...POSTGRESQL_CONNECTION,
         dbName,
-        entities: [MikroOrmInboxOutboxTransportEvent, ...(config.additionalEntities || [])],
+        entities: [MikroOrmOutboxTransportEvent, ...(config.additionalEntities || [])],
         allowGlobalContext: true,
       });
 
-  const inboxOutboxModule = InboxOutboxModule.registerAsync({
+  const inboxOutboxModule = OutboxModule.registerAsync({
     imports: [MikroOrmModule],
     useFactory: (orm: MikroORM) => {
       const driverFactory = new MikroORMDatabaseDriverFactory(orm, {
@@ -120,7 +120,7 @@ export async function createTestApp(config: TestAppConfig): Promise<TestContext>
         driverFactory,
         events: config.events,
         retryEveryMilliseconds: config.retryEveryMilliseconds ?? 10000,
-        maxInboxOutboxTransportEventPerRetry: config.maxInboxOutboxTransportEventPerRetry ?? 100,
+        maxOutboxTransportEventPerRetry: config.maxOutboxTransportEventPerRetry ?? 100,
       };
     },
     inject: [MikroORM],

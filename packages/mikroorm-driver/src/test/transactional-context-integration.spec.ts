@@ -4,10 +4,10 @@ import { Entity, PrimaryKey, Property, MikroORM, Transactional, EntityManager } 
 import { Injectable } from '@nestjs/common';
 import {
   TransactionalEventEmitter,
-  InboxOutboxEvent,
+  OutboxEvent,
   IListener,
-} from '@nestixis/nestjs-inbox-outbox';
-import { MikroOrmInboxOutboxTransportEvent } from '../model/mikroorm-inbox-outbox-transport-event.model';
+} from '@fullstackhouse/nestjs-outbox';
+import { MikroOrmOutboxTransportEvent } from '../model/mikroorm-outbox-transport-event.model';
 import { createTestApp, cleanupTestApp, TestContext } from './test-utils';
 
 @Entity({ tableName: 'orders' })
@@ -22,7 +22,7 @@ class Order {
   total: number;
 }
 
-class OrderCreatedEvent extends InboxOutboxEvent {
+class OrderCreatedEvent extends OutboxEvent {
   public readonly name = 'OrderCreated';
 
   constructor(
@@ -158,7 +158,7 @@ describe('@Transactional() decorator integration', () => {
       const orders = await checkEm.find(Order, { customerEmail: 'rollback@example.com' });
       expect(orders).toHaveLength(0);
 
-      const transportEvents = await checkEm.find(MikroOrmInboxOutboxTransportEvent, {});
+      const transportEvents = await checkEm.find(MikroOrmOutboxTransportEvent, {});
       expect(transportEvents).toHaveLength(0);
     });
 
@@ -270,7 +270,7 @@ describe('@Transactional() decorator integration', () => {
       const orders = await checkEm.find(Order, { customerEmail: 'isolated@example.com' });
       expect(orders).toHaveLength(0);
 
-      const transportEvents = await checkEm.find(MikroOrmInboxOutboxTransportEvent, {});
+      const transportEvents = await checkEm.find(MikroOrmOutboxTransportEvent, {});
       expect(transportEvents).toHaveLength(0);
     });
   });

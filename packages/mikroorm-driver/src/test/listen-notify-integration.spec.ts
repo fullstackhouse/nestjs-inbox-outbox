@@ -8,13 +8,13 @@ import { INestApplication } from '@nestjs/common';
 import {
   TransactionalEventEmitter,
   TransactionalEventEmitterOperations,
-  InboxOutboxEvent,
+  OutboxEvent,
   IListener,
-  InboxOutboxModule,
+  OutboxModule,
   EVENT_LISTENER_TOKEN,
   EventListener,
-} from '@nestixis/nestjs-inbox-outbox';
-import { MikroOrmInboxOutboxTransportEvent } from '../model/mikroorm-inbox-outbox-transport-event.model';
+} from '@fullstackhouse/nestjs-outbox';
+import { MikroOrmOutboxTransportEvent } from '../model/mikroorm-outbox-transport-event.model';
 import { MikroORMDatabaseDriverFactory } from '../driver/mikroorm-database-driver.factory';
 import { getNotifyTriggerSQL } from '../listener/postgresql-event-listener';
 import {
@@ -36,7 +36,7 @@ class User {
   name: string;
 }
 
-class UserCreatedEvent extends InboxOutboxEvent {
+class UserCreatedEvent extends OutboxEvent {
   public readonly name = 'UserCreated';
 
   constructor(
@@ -62,7 +62,7 @@ async function createTestAppWithNotify(): Promise<TestContext> {
     driver: PostgreSqlDriver,
     ...BASE_CONNECTION,
     dbName,
-    entities: [MikroOrmInboxOutboxTransportEvent, User],
+    entities: [MikroOrmOutboxTransportEvent, User],
     allowGlobalContext: true,
   });
   await orm.getSchemaGenerator().createSchema();
@@ -71,7 +71,7 @@ async function createTestAppWithNotify(): Promise<TestContext> {
 
   const testingModule = await Test.createTestingModule({
     imports: [
-      InboxOutboxModule.registerAsync({
+      OutboxModule.registerAsync({
         useFactory: () => ({
           driverFactory,
           events: [
@@ -85,7 +85,7 @@ async function createTestAppWithNotify(): Promise<TestContext> {
             },
           ],
           retryEveryMilliseconds: 60000,
-          maxInboxOutboxTransportEventPerRetry: 100,
+          maxOutboxTransportEventPerRetry: 100,
         }),
         isGlobal: true,
       }),
@@ -177,7 +177,7 @@ describe('LISTEN/NOTIFY Integration Tests', () => {
     expect(eventReceived).toBe(true);
 
     const em = orm.em.fork();
-    const transportEvents = await em.find(MikroOrmInboxOutboxTransportEvent, {
+    const transportEvents = await em.find(MikroOrmOutboxTransportEvent, {
       eventName: 'UserCreated',
     });
     expect(transportEvents.length).toBeGreaterThanOrEqual(1);

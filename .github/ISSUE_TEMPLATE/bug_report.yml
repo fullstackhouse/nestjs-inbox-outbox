@@ -1,5 +1,5 @@
 name: 🐞 Bug report
-description: Report an issue with NestJS InboxOutbox or its drivers.
+description: Report an issue with NestJS Outbox or its drivers.
 labels: [ pending triage ]
 body:
   - type: textarea
@@ -26,23 +26,23 @@ body:
       label: What driver are you using?
       multiple: false
       options:
-        - "@nestixis/nestjs-inbox-outbox-mikroorm-driver"
-        - "@nestixis/nestjs-inbox-outbox-typeorm-driver"
+        - "@fullstackhouse/nestjs-outbox-mikroorm-driver"
+        - "@fullstackhouse/nestjs-outbox-typeorm-driver"
     validations:
       required: false
 
   - type: input
     id: package-version
     attributes:
-      label: NestJS InboxOutbox version
+      label: NestJS Outbox version
       description: Which version of the package are you using? Run `npm list <package>` in your project directory and paste the output.
     validations:
       required: true
 
   - type: input
-    id: package-version-nestjs-inbox-outbox-driver
+    id: package-version-nestjs-outbox-driver
     attributes:
-      label: NestJS InboxOutbox Driver version
+      label: NestJS Outbox Driver version
       description: Which version of the package are you using? Run `npm list <package>` in your project directory and paste the output.
     validations:
       required: true
@@ -79,11 +79,11 @@ body:
       label: Validations
       description: Before submitting the issue, please make sure you do the following
       options:
-        - label: Read the [docs](https://github.com/Nestixis/nestjs-inbox-outbox/blob/main/README.json).
+        - label: Read the [docs](https://github.com/fullstackhouse/nestjs-outbox/blob/main/README.json).
           required: true
-        - label: Check that there isn't [already an issue](https://github.com/Nestixis/nestjs-inbox-outbox/issues) that reports the same bug to avoid creating a duplicate.
+        - label: Check that there isn't [already an issue](https://github.com/fullstackhouse/nestjs-outbox/issues) that reports the same bug to avoid creating a duplicate.
           required: true
-        - label: Check that this is a concrete bug. For Q&A open a [GitHub Discussion](https://github.com/Nestixis/nestjs-inbox-outbox/discussions).
+        - label: Check that this is a concrete bug. For Q&A open a [GitHub Discussion](https://github.com/fullstackhouse/nestjs-outbox/discussions).
           required: true
         - label: The provided reproduction is a [minimal reproducible example](https://stackoverflow.com/help/minimal-reproducible-example) of the bug.
           required: true

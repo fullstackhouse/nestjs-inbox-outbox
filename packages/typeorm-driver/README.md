@@ -1,8 +1,8 @@
-# NestJS Inbox Outbox TypeORM Driver
+# NestJS Outbox TypeORM Driver
 
-[![npm version](https://badge.fury.io/js/%40nestixis%2Fnestjs-inbox-outbox-typeorm-driver.svg)](https://www.npmjs.com/package/@nestixis/nestjs-inbox-outbox-typeorm-driver)
+[![npm version](https://badge.fury.io/js/%40fullstackhouse%2Fnestjs-outbox-typeorm-driver.svg)](https://www.npmjs.com/package/@fullstackhouse/nestjs-outbox-typeorm-driver)
 
-TypeORM driver for [@nestixis/nestjs-inbox-outbox](../core).
+TypeORM driver for [@fullstackhouse/nestjs-outbox](../core).
 
 ## Features
 
@@ -11,18 +11,18 @@ TypeORM driver for [@nestixis/nestjs-inbox-outbox](../core).
 ## Installation
 
 ```bash
-npm install @nestixis/nestjs-inbox-outbox-typeorm-driver
+npm install @fullstackhouse/nestjs-outbox-typeorm-driver
 ```
 
 ## Quick Start
 
 ```typescript
-import { InboxOutboxModule } from '@nestixis/nestjs-inbox-outbox';
+import { OutboxModule } from '@fullstackhouse/nestjs-outbox';
 import {
-  InboxOutboxTransportEventMigrations,
+  OutboxTransportEventMigrations,
   TypeORMDatabaseDriverFactory,
-  TypeOrmInboxOutboxTransportEvent,
-} from '@nestixis/nestjs-inbox-outbox-typeorm-driver';
+  TypeOrmOutboxTransportEvent,
+} from '@fullstackhouse/nestjs-outbox-typeorm-driver';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
@@ -35,13 +35,13 @@ import { DataSource } from 'typeorm';
       port: 5432,
       username: 'user',
       password: 'user',
-      database: 'inbox_outbox',
-      entities: [TypeOrmInboxOutboxTransportEvent],
-      migrations: [...InboxOutboxTransportEventMigrations],
+      database: 'outbox',
+      entities: [TypeOrmOutboxTransportEvent],
+      migrations: [...OutboxTransportEventMigrations],
       migrationsRun: true,
     }),
-    InboxOutboxModule.registerAsync({
-      imports: [TypeOrmModule.forFeature([TypeOrmInboxOutboxTransportEvent])],
+    OutboxModule.registerAsync({
+      imports: [TypeOrmModule.forFeature([TypeOrmOutboxTransportEvent])],
       useFactory: (dataSource: DataSource) => ({
         driverFactory: new TypeORMDatabaseDriverFactory(dataSource),
         events: [
@@ -55,7 +55,7 @@ import { DataSource } from 'typeorm';
           },
         ],
         retryEveryMilliseconds: 30_000,
-        maxInboxOutboxTransportEventPerRetry: 10,
+        maxOutboxTransportEventPerRetry: 10,
       }),
       inject: [DataSource],
     }),

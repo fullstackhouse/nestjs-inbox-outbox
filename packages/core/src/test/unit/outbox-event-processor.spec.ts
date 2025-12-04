@@ -1,32 +1,32 @@
 import { vi } from 'vitest';
 import { DatabaseDriverFactory } from "../../driver/database-driver.factory";
 import { DatabaseDriver } from "../../driver/database.driver";
-import { InboxOutboxModuleOptions } from "../../inbox-outbox.module-definition";
+import { OutboxModuleOptions } from "../../outbox.module-definition";
 import { IListener } from "../../listener/contract/listener.interface";
-import { InboxOutboxTransportEvent } from "../../model/inbox-outbox-transport-event.interface";
-import { InboxOutboxEventProcessorContract } from "../../processor/inbox-outbox-event-processor.contract";
-import { InboxOutboxEventProcessor } from "../../processor/inbox-outbox-event.processor";
+import { OutboxTransportEvent } from "../../model/outbox-transport-event.interface";
+import { OutboxEventProcessorContract } from "../../processor/outbox-event-processor.contract";
+import { OutboxEventProcessor } from "../../processor/outbox-event.processor";
 import { EventConfigurationResolverContract } from "../../resolver/event-configuration-resolver.contract";
 import { createMockedDriverFactory } from "./mock/driver-factory.mock";
 import { createMockedDriver } from "./mock/driver.mock";
 import { createMockedEventConfigurationResolver } from "./mock/event-configuration-resolver.mock";
-import { createMockedInboxOutboxEventProcessor } from "./mock/inbox-outbox-event-processor.mock";
-import { createMockedInboxOutboxOptionsFactory } from "./mock/inbox-outbox-options.mock";
+import { createMockedOutboxEventProcessor } from "./mock/outbox-event-processor.mock";
+import { createMockedOutboxOptionsFactory } from "./mock/outbox-options.mock";
 
-describe('InboxOutboxEventProcessor', () => {
+describe('OutboxEventProcessor', () => {
 
     let mockedDriver: DatabaseDriver;
     let mockedDriverFactory: DatabaseDriverFactory;
-    let inboxOutboxOptions: InboxOutboxModuleOptions;
-    let mockedInboxOutboxEventProcessor: InboxOutboxEventProcessorContract;
+    let outboxOptions: OutboxModuleOptions;
+    let mockedOutboxEventProcessor: OutboxEventProcessorContract;
     let mockedEventConfigurationResolver: EventConfigurationResolverContract;
     let mockLogger: any; 
     
     beforeEach(() => {
       mockedDriver = createMockedDriver();
       mockedDriverFactory = createMockedDriverFactory(mockedDriver);
-      inboxOutboxOptions = createMockedInboxOutboxOptionsFactory(mockedDriverFactory, []);
-      mockedInboxOutboxEventProcessor = createMockedInboxOutboxEventProcessor();
+      outboxOptions = createMockedOutboxOptionsFactory(mockedDriverFactory, []);
+      mockedOutboxEventProcessor = createMockedOutboxEventProcessor();
       mockedEventConfigurationResolver = createMockedEventConfigurationResolver();
       mockLogger = {
         error: vi.fn(),
@@ -39,7 +39,7 @@ describe('InboxOutboxEventProcessor', () => {
 
     it('Should process the event and deliver it to the all listeners, resulting in calling remove on driver', async () => {
 
-        inboxOutboxOptions.events = [
+        outboxOptions.events = [
             {
               name: 'newEvent',
               listeners: {
@@ -61,13 +61,13 @@ describe('InboxOutboxEventProcessor', () => {
         };
         
 
-        const inboxOutboxEventProcessor = new InboxOutboxEventProcessor(
+        const outboxEventProcessor = new OutboxEventProcessor(
             mockLogger,
             mockedDriverFactory,
             mockedEventConfigurationResolver
         );
 
-        const inboxOutboxTransportEvent : InboxOutboxTransportEvent = {
+        const outboxTransportEvent : OutboxTransportEvent = {
             readyToRetryAfter: new Date().getTime(),
             deliveredToListeners: [],
             eventName: 'newEvent',
@@ -77,7 +77,7 @@ describe('InboxOutboxEventProcessor', () => {
             insertedAt: new Date().getTime(),
         };
 
-        await inboxOutboxEventProcessor.process(inboxOutboxOptions.events[0], inboxOutboxTransportEvent, [firstListener, secondListener]);
+        await outboxEventProcessor.process(outboxOptions.events[0], outboxTransportEvent, [firstListener, secondListener]);
 
         
         expect(mockedDriver.remove).toHaveBeenCalledTimes(1);
@@ -87,7 +87,7 @@ describe('InboxOutboxEventProcessor', () => {
 
     it('Should process the event and deliver it to the all listeners, one with error, resulting in calling in not calling remove on driver', async () => {
 
-        inboxOutboxOptions.events = [
+        outboxOptions.events = [
             {
               name: 'newEvent',
               listeners: {
@@ -109,13 +109,13 @@ describe('InboxOutboxEventProcessor', () => {
         };
         
 
-        const inboxOutboxEventProcessor = new InboxOutboxEventProcessor(
+        const outboxEventProcessor = new OutboxEventProcessor(
             mockLogger,
             mockedDriverFactory,
             mockedEventConfigurationResolver
         );
 
-        const inboxOutboxTransportEvent : InboxOutboxTransportEvent = {
+        const outboxTransportEvent : OutboxTransportEvent = {
             readyToRetryAfter: new Date().getTime(),
             deliveredToListeners: [],
             eventName: 'newEvent',
@@ -125,7 +125,7 @@ describe('InboxOutboxEventProcessor', () => {
             insertedAt: new Date().getTime(),
         };
 
-        await inboxOutboxEventProcessor.process(inboxOutboxOptions.events[0], inboxOutboxTransportEvent, [firstListener, secondListener]);
+        await outboxEventProcessor.process(outboxOptions.events[0], outboxTransportEvent, [firstListener, secondListener]);
 
         expect(mockedDriver.remove).not.toHaveBeenCalled();
         expect(mockedDriver.persist).toHaveBeenCalledTimes(1);

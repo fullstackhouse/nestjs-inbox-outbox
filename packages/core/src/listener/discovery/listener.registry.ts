@@ -1,1 +1,1 @@
-export const REGISTRY_METADATA_KEY = Symbol('__listener-inbox-outbox__');
+export const REGISTRY_METADATA_KEY = Symbol('__listener-outbox__');

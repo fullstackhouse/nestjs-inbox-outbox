@@ -1,10 +1,10 @@
 {
-  "name": "@nestixis/nestjs-inbox-outbox",
+  "name": "@fullstackhouse/nestjs-outbox",
   "version": "1.0.1",
-  "description": "NestJS Inbox Outbox pattern implementation with extensible database drivers",
+  "description": "NestJS Outbox pattern implementation with extensible database drivers",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Nestixis/nestjs-inbox-outbox.git"
+    "url": "git+https://github.com/fullstackhouse/nestjs-outbox.git"
   },
   "scripts": {
     "build": "tsc",
@@ -17,7 +17,7 @@
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "author": "Nestixis",
+  "author": "Full Stack House",
   "license": "MIT",
   "peerDependencies": {
     "@nestjs/common": "^10.0.0",

@@ -1,8 +1,8 @@
 import 'reflect-metadata';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { DataSource, Like } from 'typeorm';
-import { EventConfigurationResolverContract } from '@nestixis/nestjs-inbox-outbox';
-import { TypeOrmInboxOutboxTransportEvent } from '../model/typeorm-inbox-outbox-transport-event.model';
+import { EventConfigurationResolverContract } from '@fullstackhouse/nestjs-outbox';
+import { TypeOrmOutboxTransportEvent } from '../model/typeorm-outbox-transport-event.model';
 import { TypeORMDatabaseDriverFactory } from '../driver/typeorm-database-driver.factory';
 import { TypeORMDatabaseDriver } from '../driver/typeorm.database-driver';
 import { createTestDatabase, dropTestDatabase, BASE_CONNECTION } from './test-utils';
@@ -31,7 +31,7 @@ describe('TypeORMDatabaseDriverFactory', () => {
       username: BASE_CONNECTION.user,
       password: BASE_CONNECTION.password,
       database: dbName,
-      entities: [TypeOrmInboxOutboxTransportEvent],
+      entities: [TypeOrmOutboxTransportEvent],
       synchronize: true,
     });
     await dataSource.initialize();
@@ -56,8 +56,8 @@ describe('TypeORMDatabaseDriverFactory', () => {
       const driver1 = factory.create(createEventConfigResolver());
       const driver2 = factory.create(createEventConfigResolver());
 
-      const event1 = driver1.createInboxOutboxTransportEvent('Event1', {}, Date.now() + 60000, Date.now() + 5000);
-      const event2 = driver2.createInboxOutboxTransportEvent('Event2', {}, Date.now() + 60000, Date.now() + 5000);
+      const event1 = driver1.createOutboxTransportEvent('Event1', {}, Date.now() + 60000, Date.now() + 5000);
+      const event2 = driver2.createOutboxTransportEvent('Event2', {}, Date.now() + 60000, Date.now() + 5000);
 
       await driver1.persist(event1);
       await driver2.persist(event2);
@@ -65,7 +65,7 @@ describe('TypeORMDatabaseDriverFactory', () => {
       await driver1.flush();
       await driver2.flush();
 
-      const events = await dataSource.getRepository(TypeOrmInboxOutboxTransportEvent).find();
+      const events = await dataSource.getRepository(TypeOrmOutboxTransportEvent).find();
       expect(events).toHaveLength(2);
     });
 
@@ -75,17 +75,17 @@ describe('TypeORMDatabaseDriverFactory', () => {
       const driver1 = factory.create(createEventConfigResolver());
       const driver2 = factory.create(createEventConfigResolver());
 
-      const event = driver1.createInboxOutboxTransportEvent('IsolationTest', {}, Date.now() + 60000, Date.now() + 5000);
+      const event = driver1.createOutboxTransportEvent('IsolationTest', {}, Date.now() + 60000, Date.now() + 5000);
       await driver1.persist(event);
 
       await driver2.flush();
 
-      const events = await dataSource.getRepository(TypeOrmInboxOutboxTransportEvent).findBy({ eventName: 'IsolationTest' });
+      const events = await dataSource.getRepository(TypeOrmOutboxTransportEvent).findBy({ eventName: 'IsolationTest' });
       expect(events).toHaveLength(0);
 
       await driver1.flush();
 
-      const eventsAfter = await dataSource.getRepository(TypeOrmInboxOutboxTransportEvent).findBy({ eventName: 'IsolationTest' });
+      const eventsAfter = await dataSource.getRepository(TypeOrmOutboxTransportEvent).findBy({ eventName: 'IsolationTest' });
       expect(eventsAfter).toHaveLength(1);
     });
 
@@ -94,7 +94,7 @@ describe('TypeORMDatabaseDriverFactory', () => {
 
       const operations = Array.from({ length: 5 }, async (_, i) => {
         const driver = factory.create(createEventConfigResolver());
-        const event = driver.createInboxOutboxTransportEvent(`ConcurrentEvent${i}`, { index: i }, Date.now() + 60000, Date.now() + 5000);
+        const event = driver.createOutboxTransportEvent(`ConcurrentEvent${i}`, { index: i }, Date.now() + 60000, Date.now() + 5000);
         await driver.persist(event);
         await driver.flush();
         return event;
@@ -102,7 +102,7 @@ describe('TypeORMDatabaseDriverFactory', () => {
 
       await Promise.all(operations);
 
-      const events = await dataSource.getRepository(TypeOrmInboxOutboxTransportEvent).find({
+      const events = await dataSource.getRepository(TypeOrmOutboxTransportEvent).find({
         where: { eventName: Like('ConcurrentEvent%') },
       });
 

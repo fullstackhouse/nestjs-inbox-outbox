@@ -3,12 +3,12 @@ import { DiscoveryModule } from '@nestjs/core';
 import { DATABASE_DRIVER_FACTORY_TOKEN, DatabaseDriverFactory } from './driver/database-driver.factory';
 import { TransactionalEventEmitter } from './emitter/transactional-event-emitter';
 import { EventValidator } from './event-validator/event.validator';
-import { ASYNC_OPTIONS_TYPE, ConfigurableModuleClass, InboxOutboxModuleOptions, MODULE_OPTIONS_TOKEN } from './inbox-outbox.module-definition';
+import { ASYNC_OPTIONS_TYPE, ConfigurableModuleClass, OutboxModuleOptions, MODULE_OPTIONS_TOKEN } from './outbox.module-definition';
 import { ListenerDiscovery } from './listener/discovery/listener.discovery';
 import { EVENT_LISTENER_TOKEN } from './poller/event-listener.interface';
-import { RetryableInboxOutboxEventPoller } from './poller/retryable-inbox-outbox-event.poller';
-import { INBOX_OUTBOX_EVENT_PROCESSOR_TOKEN } from './processor/inbox-outbox-event-processor.contract';
-import { InboxOutboxEventProcessor } from './processor/inbox-outbox-event.processor';
+import { RetryableOutboxEventPoller } from './poller/retryable-outbox-event.poller';
+import { OUTBOX_EVENT_PROCESSOR_TOKEN } from './processor/outbox-event-processor.contract';
+import { OutboxEventProcessor } from './processor/outbox-event.processor';
 import { EVENT_CONFIGURATION_RESOLVER_TOKEN } from './resolver/event-configuration-resolver.contract';
 import { EventConfigurationResolver } from './resolver/event-configuration.resolver';
 
@@ -17,28 +17,28 @@ import { EventConfigurationResolver } from './resolver/event-configuration.resol
   providers: [
     Logger,
     {
-      provide: INBOX_OUTBOX_EVENT_PROCESSOR_TOKEN,
+      provide: OUTBOX_EVENT_PROCESSOR_TOKEN,
       useFactory: (logger: Logger, databaseDriverFactory: DatabaseDriverFactory, eventConfigurationResolver: EventConfigurationResolver) => {
-        return new InboxOutboxEventProcessor(logger, databaseDriverFactory, eventConfigurationResolver);
+        return new OutboxEventProcessor(logger, databaseDriverFactory, eventConfigurationResolver);
       },
       inject: [Logger, DATABASE_DRIVER_FACTORY_TOKEN, EventConfigurationResolver],
     },
     {
       provide: EVENT_CONFIGURATION_RESOLVER_TOKEN,
-      useFactory: (options: InboxOutboxModuleOptions) => {
+      useFactory: (options: OutboxModuleOptions) => {
         return new EventConfigurationResolver(options);
       },
       inject: [MODULE_OPTIONS_TOKEN],
     },
     TransactionalEventEmitter,
-    RetryableInboxOutboxEventPoller,
+    RetryableOutboxEventPoller,
     ListenerDiscovery,
     EventConfigurationResolver,
     EventValidator,
   ],
   exports: [TransactionalEventEmitter],
 })
-export class InboxOutboxModule extends ConfigurableModuleClass {
+export class OutboxModule extends ConfigurableModuleClass {
   static registerAsync(options: typeof ASYNC_OPTIONS_TYPE): DynamicModule {
     const registered = super.registerAsync(options);
 
@@ -50,14 +50,14 @@ export class InboxOutboxModule extends ConfigurableModuleClass {
         ...registered.providers,
         {
           provide: DATABASE_DRIVER_FACTORY_TOKEN,
-          useFactory: async (options: InboxOutboxModuleOptions) => {
+          useFactory: async (options: OutboxModuleOptions) => {
             return options.driverFactory;
           },
           inject: [MODULE_OPTIONS_TOKEN],
         } as Provider<any>,
         {
           provide: EVENT_LISTENER_TOKEN,
-          useFactory: async (options: InboxOutboxModuleOptions) => {
+          useFactory: async (options: OutboxModuleOptions) => {
             return options.driverFactory.getEventListener?.() ?? null;
           },
           inject: [MODULE_OPTIONS_TOKEN],

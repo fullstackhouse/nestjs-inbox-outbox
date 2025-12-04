@@ -64,13 +64,13 @@ jobs:
         run: npm ci
 
       - name: Build core package
-        run: npm run build --workspace=@nestixis/nestjs-inbox-outbox
+        run: npm run build --workspace=@fullstackhouse/nestjs-outbox
 
       - name: Type check MikroORM driver
-        run: npm run build --workspace=@nestixis/nestjs-inbox-outbox-mikroorm-driver
+        run: npm run build --workspace=@fullstackhouse/nestjs-outbox-mikroorm-driver
 
       - name: Run MikroORM driver tests
-        run: npm test --workspace=@nestixis/nestjs-inbox-outbox-mikroorm-driver
+        run: npm test --workspace=@fullstackhouse/nestjs-outbox-mikroorm-driver
         env:
           PGHOST: localhost
           PGUSER: postgres

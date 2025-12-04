@@ -1,6 +1,6 @@
 import { DatabaseDriverFactory } from "../../../driver/database-driver.factory";
 
-export const createMockedInboxOutboxOptionsFactory = (mockedDriverFactory: DatabaseDriverFactory, events: {
+export const createMockedOutboxOptionsFactory = (mockedDriverFactory: DatabaseDriverFactory, events: {
     name: string,
     listeners: {
         expiresAtTTL: number,
@@ -10,6 +10,6 @@ export const createMockedInboxOutboxOptionsFactory = (mockedDriverFactory: Datab
 }[]) => ({
     driverFactory: mockedDriverFactory,
     retryEveryMilliseconds: 1000,
-    maxInboxOutboxTransportEventPerRetry: 1000,
+    maxOutboxTransportEventPerRetry: 1000,
     events
 });

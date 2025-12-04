@@ -51,13 +51,13 @@ jobs:
         run: npm ci
 
       - name: Build core package
-        run: npm run build --workspace=@nestixis/nestjs-inbox-outbox
+        run: npm run build --workspace=@fullstackhouse/nestjs-outbox
 
       - name: Type check TypeORM driver
-        run: npm run build --workspace=@nestixis/nestjs-inbox-outbox-typeorm-driver
+        run: npm run build --workspace=@fullstackhouse/nestjs-outbox-typeorm-driver
 
       - name: Run TypeORM driver tests
-        run: npm test --workspace=@nestixis/nestjs-inbox-outbox-typeorm-driver
+        run: npm test --workspace=@fullstackhouse/nestjs-outbox-typeorm-driver
         env:
           PGHOST: localhost
           PGUSER: postgres

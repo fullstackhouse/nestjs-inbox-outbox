@@ -1,26 +1,26 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { DATABASE_DRIVER_FACTORY_TOKEN, DatabaseDriverFactory } from '../driver/database-driver.factory';
-import { InboxOutboxModuleEventOptions } from '../inbox-outbox.module-definition';
+import { OutboxModuleEventOptions } from '../outbox.module-definition';
 import { IListener } from '../listener/contract/listener.interface';
-import { InboxOutboxTransportEvent } from '../model/inbox-outbox-transport-event.interface';
+import { OutboxTransportEvent } from '../model/outbox-transport-event.interface';
 import { EVENT_CONFIGURATION_RESOLVER_TOKEN, EventConfigurationResolverContract } from '../resolver/event-configuration-resolver.contract';
-import { InboxOutboxEventProcessorContract } from './inbox-outbox-event-processor.contract';
+import { OutboxEventProcessorContract } from './outbox-event-processor.contract';
 
 @Injectable()
-export class InboxOutboxEventProcessor implements InboxOutboxEventProcessorContract {
+export class OutboxEventProcessor implements OutboxEventProcessorContract {
   constructor(
     @Inject(Logger) private logger: Logger,
     @Inject(DATABASE_DRIVER_FACTORY_TOKEN) private databaseDriverFactory: DatabaseDriverFactory,
     @Inject(EVENT_CONFIGURATION_RESOLVER_TOKEN) private eventConfigurationResolver: EventConfigurationResolverContract
   ) {}
 
-  async process<TPayload>(eventOptions: InboxOutboxModuleEventOptions, inboxOutboxTransportEvent: InboxOutboxTransportEvent, listeners: IListener<TPayload>[]) {
+  async process<TPayload>(eventOptions: OutboxModuleEventOptions, outboxTransportEvent: OutboxTransportEvent, listeners: IListener<TPayload>[]) {
     const deliveredToListeners: string[] = [];
     const notDeliveredToListeners: string[] = [];
 
     const databaseDriver = this.databaseDriverFactory.create(this.eventConfigurationResolver);
 
-    const listenerPromises = listeners.map((listener) => this.executeListenerWithTimeout(listener, inboxOutboxTransportEvent, eventOptions));
+    const listenerPromises = listeners.map((listener) => this.executeListenerWithTimeout(listener, outboxTransportEvent, eventOptions));
     const listenerPromisesResults = await Promise.allSettled(listenerPromises);
 
     for (const result of listenerPromisesResults) {
@@ -34,12 +34,12 @@ export class InboxOutboxEventProcessor implements InboxOutboxEventProcessorContr
     }
 
     if (deliveredToListeners.length > 0) {
-      inboxOutboxTransportEvent.deliveredToListeners.push(...deliveredToListeners);
-      await databaseDriver.persist(inboxOutboxTransportEvent);
+      outboxTransportEvent.deliveredToListeners.push(...deliveredToListeners);
+      await databaseDriver.persist(outboxTransportEvent);
     }
 
     if (notDeliveredToListeners.length === 0) {
-      await databaseDriver.remove(inboxOutboxTransportEvent);
+      await databaseDriver.remove(outboxTransportEvent);
     }
 
     return databaseDriver.flush();
@@ -47,8 +47,8 @@ export class InboxOutboxEventProcessor implements InboxOutboxEventProcessorContr
 
   private executeListenerWithTimeout(
     listener: IListener<any>,
-    inboxOutboxTransportEvent: InboxOutboxTransportEvent,
-    eventOptions: InboxOutboxModuleEventOptions,
+    outboxTransportEvent: OutboxTransportEvent,
+    eventOptions: OutboxModuleEventOptions,
   ): Promise<{ listenerName: string, hasFailed: boolean }> {
     return new Promise(async (resolve, reject) => {
       let timeoutTimer: NodeJS.Timeout;
@@ -57,7 +57,7 @@ export class InboxOutboxEventProcessor implements InboxOutboxEventProcessorContr
         timeoutTimer = setTimeout(() => {
           this.logger.error(
             `Listener ${listener.getName()} has been timed out`,
-            this.buildEventContext(inboxOutboxTransportEvent),
+            this.buildEventContext(outboxTransportEvent),
           );
           resolve({
             listenerName: listener.getName(),
@@ -65,7 +65,7 @@ export class InboxOutboxEventProcessor implements InboxOutboxEventProcessorContr
           });
         }, eventOptions.listeners.maxExecutionTimeTTL);
 
-        await listener.handle(inboxOutboxTransportEvent.eventPayload, inboxOutboxTransportEvent.eventName);
+        await listener.handle(outboxTransportEvent.eventPayload, outboxTransportEvent.eventName);
         clearTimeout(timeoutTimer);
 
         resolve({
@@ -83,7 +83,7 @@ export class InboxOutboxEventProcessor implements InboxOutboxEventProcessorContr
     });
   }
 
-  private buildEventContext(event: InboxOutboxTransportEvent): Record<string, unknown> {
+  private buildEventContext(event: OutboxTransportEvent): Record<string, unknown> {
     const MAX_PAYLOAD_LENGTH = 200;
     const payloadString = JSON.stringify(event.eventPayload);
     const truncatedPayload = payloadString.length > MAX_PAYLOAD_LENGTH
