@@ -261,10 +261,12 @@ See existing drivers in `packages/` for reference. Contributions welcome via PR.
 
 ## Releasing
 
-Publishing to npm is automated via GitHub releases. Create a new release with a tag like `v2.1.0` and the workflow will:
+Publishing to npm is automated via GitHub releases using [npm trusted publishers](https://docs.npmjs.com/trusted-publishers/) with OIDC—no npm tokens required.
+
+Create a new release with a tag like `v2.1.0` and the workflow will:
 1. Extract version from the tag (strips `v` prefix)
 2. Update all package versions
-3. Build and publish to npm
+3. Build and publish to npm with provenance attestations
 
 ## License
 
