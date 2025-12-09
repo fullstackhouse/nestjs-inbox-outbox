@@ -18,10 +18,10 @@ import { EventConfigurationResolver } from './resolver/event-configuration.resol
     Logger,
     {
       provide: OUTBOX_EVENT_PROCESSOR_TOKEN,
-      useFactory: (logger: Logger, databaseDriverFactory: DatabaseDriverFactory, eventConfigurationResolver: EventConfigurationResolver) => {
-        return new OutboxEventProcessor(logger, databaseDriverFactory, eventConfigurationResolver);
+      useFactory: (logger: Logger, databaseDriverFactory: DatabaseDriverFactory, eventConfigurationResolver: EventConfigurationResolver, options: OutboxModuleOptions) => {
+        return new OutboxEventProcessor(logger, databaseDriverFactory, eventConfigurationResolver, options.middlewares);
       },
-      inject: [Logger, DATABASE_DRIVER_FACTORY_TOKEN, EventConfigurationResolver],
+      inject: [Logger, DATABASE_DRIVER_FACTORY_TOKEN, EventConfigurationResolver, MODULE_OPTIONS_TOKEN],
     },
     {
       provide: EVENT_CONFIGURATION_RESOLVER_TOKEN,

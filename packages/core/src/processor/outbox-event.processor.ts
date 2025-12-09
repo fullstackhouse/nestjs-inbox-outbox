@@ -1,17 +1,20 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { DATABASE_DRIVER_FACTORY_TOKEN, DatabaseDriverFactory } from '../driver/database-driver.factory';
 import { OutboxModuleEventOptions } from '../outbox.module-definition';
 import { IListener } from '../listener/contract/listener.interface';
 import { OutboxTransportEvent } from '../model/outbox-transport-event.interface';
 import { EVENT_CONFIGURATION_RESOLVER_TOKEN, EventConfigurationResolverContract } from '../resolver/event-configuration-resolver.contract';
 import { OutboxEventProcessorContract } from './outbox-event-processor.contract';
+import { OutboxMiddleware } from '../middleware/outbox-middleware.interface';
+import { combineMiddlewares } from '../middleware/middleware-chain';
 
 @Injectable()
 export class OutboxEventProcessor implements OutboxEventProcessorContract {
   constructor(
     @Inject(Logger) private logger: Logger,
     @Inject(DATABASE_DRIVER_FACTORY_TOKEN) private databaseDriverFactory: DatabaseDriverFactory,
-    @Inject(EVENT_CONFIGURATION_RESOLVER_TOKEN) private eventConfigurationResolver: EventConfigurationResolverContract
+    @Inject(EVENT_CONFIGURATION_RESOLVER_TOKEN) private eventConfigurationResolver: EventConfigurationResolverContract,
+    @Optional() @Inject('OUTBOX_MIDDLEWARES') private middlewares?: OutboxMiddleware[]
   ) {}
 
   async process<TPayload>(eventOptions: OutboxModuleEventOptions, outboxTransportEvent: OutboxTransportEvent, listeners: IListener<TPayload>[]) {
@@ -53,6 +56,25 @@ export class OutboxEventProcessor implements OutboxEventProcessorContract {
     return new Promise(async (resolve, reject) => {
       let timeoutTimer: NodeJS.Timeout;
 
+      const executeListener = async () => {
+        const context = {
+          event: outboxTransportEvent,
+          listener,
+          eventOptions,
+        };
+
+        const next = async () => {
+          await listener.handle(outboxTransportEvent.eventPayload, outboxTransportEvent.eventName);
+        };
+
+        if (this.middlewares && this.middlewares.length > 0) {
+          const middlewareChain = combineMiddlewares(this.middlewares);
+          await middlewareChain(context, next);
+        } else {
+          await next();
+        }
+      };
+
       try {
         timeoutTimer = setTimeout(() => {
           this.logger.error(
@@ -65,7 +87,7 @@ export class OutboxEventProcessor implements OutboxEventProcessorContract {
           });
         }, eventOptions.listeners.maxExecutionTimeTTL);
 
-        await listener.handle(outboxTransportEvent.eventPayload, outboxTransportEvent.eventName);
+        await executeListener();
         clearTimeout(timeoutTimer);
 
         resolve({

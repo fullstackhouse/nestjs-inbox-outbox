@@ -1,5 +1,6 @@
 import { ConfigurableModuleBuilder } from '@nestjs/common';
 import { DatabaseDriverFactory } from './driver/database-driver.factory';
+import { OutboxMiddleware } from './middleware/outbox-middleware.interface';
 
 export interface OutboxModuleEventOptions {
   name: string;
@@ -23,6 +24,7 @@ export interface OutboxModuleOptions {
   retryEveryMilliseconds: number;
   maxOutboxTransportEventPerRetry: number;
   driverFactory: DatabaseDriverFactory;
+  middlewares?: OutboxMiddleware[];
 }
 
 export const { ConfigurableModuleClass, MODULE_OPTIONS_TOKEN, ASYNC_OPTIONS_TYPE } = new ConfigurableModuleBuilder<OutboxModuleOptions>()

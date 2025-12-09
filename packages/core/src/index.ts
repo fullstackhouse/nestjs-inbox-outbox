@@ -9,4 +9,5 @@ export * from "./listener/discovery/on-event.decorator";
 export * from "./model/outbox-transport-event.interface";
 export * from "./poller/event-listener.interface";
 export * from "./resolver/event-configuration-resolver.contract";
+export * from "./middleware/outbox-middleware.interface";
 
