@@ -1,3 +1,4 @@
+import { OutboxEvent } from '../emitter/contract/outbox-event.interface';
 import { OutboxTransportEvent } from '../model/outbox-transport-event.interface';
 
 export interface OutboxEventContext {
@@ -14,6 +15,7 @@ export interface OutboxListenerResult {
 }
 
 export interface OutboxMiddleware {
+  beforeEmit?(event: OutboxEvent): OutboxEvent | Promise<OutboxEvent>;
   beforeProcess?(context: OutboxEventContext): void | Promise<void>;
   afterProcess?(context: OutboxEventContext, result: OutboxListenerResult): void | Promise<void>;
   onError?(context: OutboxEventContext, error: Error): void | Promise<void>;

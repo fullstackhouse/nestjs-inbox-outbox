@@ -31,7 +31,7 @@ export const { ConfigurableModuleClass, MODULE_OPTIONS_TOKEN, ASYNC_OPTIONS_TYPE
     {
       isGlobal: true,
       /**
-       * Middleware classes for event processing hooks.
+       * Middleware classes for outbox hooks (emit, process, error).
        * Classes are registered as providers and instantiated via NestJS DI.
        */
       middlewares: [] as Type<OutboxMiddleware>[],

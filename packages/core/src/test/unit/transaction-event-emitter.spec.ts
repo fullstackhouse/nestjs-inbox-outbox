@@ -3,6 +3,7 @@ import { DatabaseDriver } from '../../driver/database.driver';
 import { TransactionalEventEmitter, TransactionalEventEmitterOperations } from '../../emitter/transactional-event-emitter';
 import { OutboxModuleOptions } from '../../outbox.module-definition';
 import { IListener } from '../../listener/contract/listener.interface';
+import { OutboxMiddleware } from '../../middleware/outbox-middleware.interface';
 import { OutboxEventProcessorContract } from '../../processor/outbox-event-processor.contract';
 import { EventConfigurationResolverContract } from '../../resolver/event-configuration-resolver.contract';
 import { createMockedDriverFactory } from './mock/driver-factory.mock';
@@ -383,5 +384,199 @@ describe('TransacationalEventEmitter', () => {
     await transactionalEventEmitter.emit(newEvent);
 
     expect(mockedOutboxEventProcessor.process).toHaveBeenCalledTimes(1);
+  });
+
+  describe('beforeEmit middleware', () => {
+    it('Should apply beforeEmit middleware before persisting event', async () => {
+      outboxOptions.events = [
+        {
+          name: 'newEvent',
+          listeners: {
+            expiresAtTTL: 1000,
+            readyToRetryAfterTTL: 1000,
+            maxExecutionTimeTTL: 1000,
+          },
+        },
+      ];
+
+      const middleware: OutboxMiddleware = {
+        beforeEmit: vi.fn((event) => ({
+          ...event,
+          injectedField: 'injectedValue',
+        })),
+      };
+
+      const transactionalEventEmitter = new TransactionalEventEmitter(
+        outboxOptions,
+        mockedDriverFactory,
+        mockedOutboxEventProcessor,
+        mockedEventConfigurationResolver,
+        [middleware],
+      );
+
+      const newEvent = { name: 'newEvent' };
+      await transactionalEventEmitter.emit(newEvent);
+
+      expect(middleware.beforeEmit).toHaveBeenCalledWith(newEvent);
+      expect(mockedDriver.createOutboxTransportEvent).toHaveBeenCalledWith(
+        'newEvent',
+        { name: 'newEvent', injectedField: 'injectedValue' },
+        expect.any(Number),
+        expect.any(Number),
+      );
+    });
+
+    it('Should apply multiple middlewares with beforeEmit in order', async () => {
+      outboxOptions.events = [
+        {
+          name: 'newEvent',
+          listeners: {
+            expiresAtTTL: 1000,
+            readyToRetryAfterTTL: 1000,
+            maxExecutionTimeTTL: 1000,
+          },
+        },
+      ];
+
+      const callOrder: string[] = [];
+
+      const middleware1: OutboxMiddleware = {
+        beforeEmit: vi.fn((event) => {
+          callOrder.push('middleware1');
+          return { ...event, field1: 'value1' };
+        }),
+      };
+
+      const middleware2: OutboxMiddleware = {
+        beforeEmit: vi.fn((event) => {
+          callOrder.push('middleware2');
+          return { ...event, field2: 'value2' };
+        }),
+      };
+
+      const transactionalEventEmitter = new TransactionalEventEmitter(
+        outboxOptions,
+        mockedDriverFactory,
+        mockedOutboxEventProcessor,
+        mockedEventConfigurationResolver,
+        [middleware1, middleware2],
+      );
+
+      await transactionalEventEmitter.emit({ name: 'newEvent' });
+
+      expect(callOrder).toEqual(['middleware1', 'middleware2']);
+      expect(mockedDriver.createOutboxTransportEvent).toHaveBeenCalledWith(
+        'newEvent',
+        { name: 'newEvent', field1: 'value1', field2: 'value2' },
+        expect.any(Number),
+        expect.any(Number),
+      );
+    });
+
+    it('Should skip middlewares without beforeEmit', async () => {
+      outboxOptions.events = [
+        {
+          name: 'newEvent',
+          listeners: {
+            expiresAtTTL: 1000,
+            readyToRetryAfterTTL: 1000,
+            maxExecutionTimeTTL: 1000,
+          },
+        },
+      ];
+
+      const middlewareWithBeforeEmit: OutboxMiddleware = {
+        beforeEmit: vi.fn((event) => ({ ...event, field1: 'value1' })),
+      };
+
+      const middlewareWithoutBeforeEmit: OutboxMiddleware = {
+        beforeProcess: vi.fn(),
+      };
+
+      const transactionalEventEmitter = new TransactionalEventEmitter(
+        outboxOptions,
+        mockedDriverFactory,
+        mockedOutboxEventProcessor,
+        mockedEventConfigurationResolver,
+        [middlewareWithoutBeforeEmit, middlewareWithBeforeEmit],
+      );
+
+      await transactionalEventEmitter.emit({ name: 'newEvent' });
+
+      expect(middlewareWithBeforeEmit.beforeEmit).toHaveBeenCalled();
+      expect(mockedDriver.createOutboxTransportEvent).toHaveBeenCalledWith(
+        'newEvent',
+        { name: 'newEvent', field1: 'value1' },
+        expect.any(Number),
+        expect.any(Number),
+      );
+    });
+
+    it('Should work without middlewares (backwards compatibility)', async () => {
+      outboxOptions.events = [
+        {
+          name: 'newEvent',
+          listeners: {
+            expiresAtTTL: 1000,
+            readyToRetryAfterTTL: 1000,
+            maxExecutionTimeTTL: 1000,
+          },
+        },
+      ];
+
+      const transactionalEventEmitter = new TransactionalEventEmitter(
+        outboxOptions,
+        mockedDriverFactory,
+        mockedOutboxEventProcessor,
+        mockedEventConfigurationResolver,
+      );
+
+      const newEvent = { name: 'newEvent' };
+      await transactionalEventEmitter.emit(newEvent);
+
+      expect(mockedDriver.createOutboxTransportEvent).toHaveBeenCalledWith(
+        'newEvent',
+        newEvent,
+        expect.any(Number),
+        expect.any(Number),
+      );
+    });
+
+    it('Should support async beforeEmit', async () => {
+      outboxOptions.events = [
+        {
+          name: 'newEvent',
+          listeners: {
+            expiresAtTTL: 1000,
+            readyToRetryAfterTTL: 1000,
+            maxExecutionTimeTTL: 1000,
+          },
+        },
+      ];
+
+      const middleware: OutboxMiddleware = {
+        beforeEmit: vi.fn(async (event) => {
+          await new Promise((resolve) => setTimeout(resolve, 1));
+          return { ...event, asyncField: 'asyncValue' };
+        }),
+      };
+
+      const transactionalEventEmitter = new TransactionalEventEmitter(
+        outboxOptions,
+        mockedDriverFactory,
+        mockedOutboxEventProcessor,
+        mockedEventConfigurationResolver,
+        [middleware],
+      );
+
+      await transactionalEventEmitter.emit({ name: 'newEvent' });
+
+      expect(mockedDriver.createOutboxTransportEvent).toHaveBeenCalledWith(
+        'newEvent',
+        { name: 'newEvent', asyncField: 'asyncValue' },
+        expect.any(Number),
+        expect.any(Number),
+      );
+    });
   });
 });
