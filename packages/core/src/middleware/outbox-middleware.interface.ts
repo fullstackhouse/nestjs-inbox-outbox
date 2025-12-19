@@ -22,12 +22,6 @@ export interface OutboxMiddleware {
 
 export type OutboxMiddlewareClass = new (...args: any[]) => OutboxMiddleware;
 
-export interface OutboxHooks {
-  beforeProcess?: (context: OutboxEventContext) => void | Promise<void>;
-  afterProcess?: (context: OutboxEventContext, result: OutboxListenerResult) => void | Promise<void>;
-  onError?: (context: OutboxEventContext, error: Error) => void | Promise<void>;
-}
-
 export const OUTBOX_MIDDLEWARES_TOKEN = 'OUTBOX_MIDDLEWARES_TOKEN';
 
 export function createOutboxEventContext(

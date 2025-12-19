@@ -1,6 +1,6 @@
-import { DynamicModule, Logger, Module, Provider, Type } from '@nestjs/common';
+import { DynamicModule, Logger, Module, Provider } from '@nestjs/common';
 import { DiscoveryModule, ModuleRef } from '@nestjs/core';
-import { DATABASE_DRIVER_FACTORY_TOKEN, DatabaseDriverFactory } from './driver/database-driver.factory';
+import { DATABASE_DRIVER_FACTORY_TOKEN } from './driver/database-driver.factory';
 import { TransactionalEventEmitter } from './emitter/transactional-event-emitter';
 import { EventValidator } from './event-validator/event.validator';
 import { ASYNC_OPTIONS_TYPE, ConfigurableModuleClass, OutboxModuleOptions, MODULE_OPTIONS_TOKEN } from './outbox.module-definition';
@@ -12,28 +12,6 @@ import { OUTBOX_EVENT_PROCESSOR_TOKEN } from './processor/outbox-event-processor
 import { OutboxEventProcessor } from './processor/outbox-event.processor';
 import { EVENT_CONFIGURATION_RESOLVER_TOKEN } from './resolver/event-configuration-resolver.contract';
 import { EventConfigurationResolver } from './resolver/event-configuration.resolver';
-
-class HooksMiddlewareAdapter implements OutboxMiddleware {
-  constructor(private hooks: NonNullable<OutboxModuleOptions['hooks']>) {}
-
-  async beforeProcess(context: Parameters<NonNullable<OutboxMiddleware['beforeProcess']>>[0]) {
-    await this.hooks.beforeProcess?.(context);
-  }
-
-  async afterProcess(
-    context: Parameters<NonNullable<OutboxMiddleware['afterProcess']>>[0],
-    result: Parameters<NonNullable<OutboxMiddleware['afterProcess']>>[1],
-  ) {
-    await this.hooks.afterProcess?.(context, result);
-  }
-
-  async onError(
-    context: Parameters<NonNullable<OutboxMiddleware['onError']>>[0],
-    error: Parameters<NonNullable<OutboxMiddleware['onError']>>[1],
-  ) {
-    await this.hooks.onError?.(context, error);
-  }
-}
 
 @Module({
   imports: [DiscoveryModule],
@@ -92,10 +70,6 @@ export class OutboxModule extends ConfigurableModuleClass {
                 const instance = await moduleRef.create(MiddlewareClass);
                 middlewares.push(instance);
               }
-            }
-
-            if (options.hooks) {
-              middlewares.push(new HooksMiddlewareAdapter(options.hooks));
             }
 
             return middlewares;
