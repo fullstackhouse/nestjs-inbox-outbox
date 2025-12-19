@@ -1,10 +1,11 @@
-import { DynamicModule, Logger, Module, Provider } from '@nestjs/common';
+import { DynamicModule, Logger, Module, Provider, Type } from '@nestjs/common';
 import { DiscoveryModule } from '@nestjs/core';
 import { DATABASE_DRIVER_FACTORY_TOKEN } from './driver/database-driver.factory';
 import { TransactionalEventEmitter } from './emitter/transactional-event-emitter';
 import { EventValidator } from './event-validator/event.validator';
 import { ASYNC_OPTIONS_TYPE, ConfigurableModuleClass, OutboxModuleOptions, MODULE_OPTIONS_TOKEN } from './outbox.module-definition';
 import { ListenerDiscovery } from './listener/discovery/listener.discovery';
+import { LoggerMiddleware } from './middleware/logger.middleware';
 import { OutboxMiddleware, OUTBOX_MIDDLEWARES_TOKEN } from './middleware/outbox-middleware.interface';
 import { EVENT_LISTENER_TOKEN } from './poller/event-listener.interface';
 import { RetryableOutboxEventPoller } from './poller/retryable-outbox-event.poller';
@@ -12,6 +13,8 @@ import { OUTBOX_EVENT_PROCESSOR_TOKEN } from './processor/outbox-event-processor
 import { OutboxEventProcessor } from './processor/outbox-event.processor';
 import { EVENT_CONFIGURATION_RESOLVER_TOKEN } from './resolver/event-configuration-resolver.contract';
 import { EventConfigurationResolver } from './resolver/event-configuration.resolver';
+
+const DEFAULT_MIDDLEWARES: Type<OutboxMiddleware>[] = [LoggerMiddleware];
 
 @Module({
   imports: [DiscoveryModule],
@@ -39,7 +42,9 @@ import { EventConfigurationResolver } from './resolver/event-configuration.resol
 export class OutboxModule extends ConfigurableModuleClass {
   static registerAsync(options: typeof ASYNC_OPTIONS_TYPE): DynamicModule {
     const registered = super.registerAsync(options);
-    const middlewares = options.middlewares ?? [];
+    const enableDefaultMiddlewares = options.enableDefaultMiddlewares ?? true;
+    const defaultMiddlewares = enableDefaultMiddlewares ? DEFAULT_MIDDLEWARES : [];
+    const middlewares = [...defaultMiddlewares, ...(options.middlewares ?? [])];
 
     return {
       ...registered,

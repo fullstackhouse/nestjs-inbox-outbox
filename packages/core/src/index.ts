@@ -2,6 +2,7 @@ export * from "./driver/database-driver.factory";
 export * from "./driver/database.driver";
 export * from "./emitter/contract/outbox-event.interface";
 export { TransactionalEventEmitter, TransactionalEventEmitterOperations } from "./emitter/transactional-event-emitter";
+export * from "./middleware/logger.middleware";
 export * from "./middleware/outbox-middleware.interface";
 export * from "./outbox.module";
 export * from "./outbox.module-definition";
