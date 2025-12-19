@@ -253,7 +253,7 @@ The module includes a `LoggerMiddleware` that is **enabled by default**. It logs
 - `OUTBOX END   {eventName}` - when processing succeeds (with duration)
 - `OUTBOX FAIL  {eventName}` - when processing fails (with error)
 
-Each log includes context: `eventId`, `listener`, `payload` (truncated to 200 chars), and `processTime`.
+Each log includes context: `eventId`, `listener`, `payload`, and `processTime`.
 
 To disable the built-in logger:
 

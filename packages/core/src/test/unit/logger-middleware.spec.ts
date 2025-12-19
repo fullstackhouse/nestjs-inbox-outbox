@@ -40,19 +40,8 @@ describe('LoggerMiddleware', () => {
       expect(mockLogger.log).toHaveBeenCalledWith('OUTBOX START TestEvent', {
         eventId: 123,
         listener: 'TestListener',
-        payload: '{"data":"test"}',
+        payload: { data: 'test' },
       });
-    });
-
-    it('should truncate long payloads', () => {
-      const longPayload = { data: 'x'.repeat(300) };
-      const context = createContext({ eventPayload: longPayload });
-
-      middleware.beforeProcess(context);
-
-      const logCall = mockLogger.log.mock.calls[0];
-      expect(logCall[1].payload.length).toBeLessThanOrEqual(203);
-      expect(logCall[1].payload).toMatch(/\.\.\.$/);
     });
   });
 
@@ -69,7 +58,7 @@ describe('LoggerMiddleware', () => {
       expect(mockLogger.log).toHaveBeenCalledWith('OUTBOX END   TestEvent', {
         eventId: 123,
         listener: 'TestListener',
-        payload: '{"data":"test"}',
+        payload: { data: 'test' },
         processTime: 42,
       });
     });
@@ -87,7 +76,7 @@ describe('LoggerMiddleware', () => {
       expect(mockLogger.error).toHaveBeenCalledWith('OUTBOX FAIL  TestEvent', {
         eventId: 123,
         listener: 'TestListener',
-        payload: '{"data":"test"}',
+        payload: { data: 'test' },
         processTime: 10,
         error: 'Something went wrong',
       });
@@ -105,7 +94,7 @@ describe('LoggerMiddleware', () => {
       expect(mockLogger.error).toHaveBeenCalledWith('OUTBOX FAIL  TestEvent', {
         eventId: 123,
         listener: 'TestListener',
-        payload: '{"data":"test"}',
+        payload: { data: 'test' },
         processTime: 10,
         error: 'Unknown error',
       });
