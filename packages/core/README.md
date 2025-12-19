@@ -306,7 +306,7 @@ interface OutboxListenerResult {
 
 ### Registering Middlewares
 
-Pass middleware classes as the second argument to `registerAsync`. The module registers them as providers and injects their instances:
+Pass middleware classes via the `middlewares` option. The module registers them as providers and injects their instances:
 
 ```typescript
 import { OutboxModule } from '@fullstackhouse/nestjs-outbox';
@@ -314,19 +314,17 @@ import { MikroORMDatabaseDriverFactory } from '@fullstackhouse/nestjs-outbox-mik
 
 @Module({
   imports: [
-    OutboxModule.registerAsync(
-      {
-        imports: [MikroOrmModule.forFeature([MikroOrmOutboxTransportEvent])],
-        useFactory: (orm: MikroORM) => ({
-          driverFactory: new MikroORMDatabaseDriverFactory(orm),
-          events: [/* ... */],
-          retryEveryMilliseconds: 30_000,
-          maxOutboxTransportEventPerRetry: 10,
-        }),
-        inject: [MikroORM],
-      },
-      [LoggingMiddleware, SentryMiddleware], // Middleware classes
-    ),
+    OutboxModule.registerAsync({
+      imports: [MikroOrmModule.forFeature([MikroOrmOutboxTransportEvent])],
+      useFactory: (orm: MikroORM) => ({
+        driverFactory: new MikroORMDatabaseDriverFactory(orm),
+        events: [/* ... */],
+        retryEveryMilliseconds: 30_000,
+        maxOutboxTransportEventPerRetry: 10,
+      }),
+      inject: [MikroORM],
+      middlewares: [LoggingMiddleware, SentryMiddleware],
+    }),
   ],
 })
 export class AppModule {}
