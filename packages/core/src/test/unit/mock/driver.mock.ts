@@ -6,6 +6,7 @@ export const createMockedDriver = () => {
         remove: vi.fn(),
         flush: vi.fn(),
         createOutboxTransportEvent: vi.fn(),
-        findAndExtendReadyToRetryEvents: vi.fn()
+        findAndExtendReadyToRetryEvents: vi.fn(),
+        findPendingEvents: vi.fn()
     }
 }

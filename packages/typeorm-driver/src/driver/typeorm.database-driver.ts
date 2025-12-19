@@ -58,4 +58,8 @@ export class TypeORMDatabaseDriver implements DatabaseDriver {
   createOutboxTransportEvent(eventName: string, eventPayload: any, expireAt: number, readyToRetryAfter: number | null): OutboxTransportEvent {
     return new TypeOrmOutboxTransportEvent().create(eventName, eventPayload, expireAt, readyToRetryAfter);
   }
+
+  async findPendingEvents(limit: number): Promise<OutboxTransportEvent[]> {
+    return this.dataSource.getRepository(TypeOrmOutboxTransportEvent).find({ take: limit });
+  }
 }

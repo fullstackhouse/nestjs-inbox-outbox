@@ -58,4 +58,8 @@ export class MikroORMDatabaseDriver implements DatabaseDriver {
   createOutboxTransportEvent(eventName: string, eventPayload: any, expireAt: number, readyToRetryAfter: number | null): OutboxTransportEvent {
     return new MikroOrmOutboxTransportEvent().create(eventName, eventPayload, expireAt, readyToRetryAfter);
   }
+
+  async findPendingEvents(limit: number): Promise<OutboxTransportEvent[]> {
+    return this.em.find(MikroOrmOutboxTransportEvent, {}, { limit });
+  }
 }
