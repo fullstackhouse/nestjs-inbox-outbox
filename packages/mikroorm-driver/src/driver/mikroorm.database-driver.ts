@@ -1,4 +1,4 @@
-import { EntityManager, LockMode } from '@mikro-orm/core';
+import { EntityManager, LockMode, raw } from '@mikro-orm/core';
 import { DatabaseDriver, EventConfigurationResolverContract, OutboxTransportEvent } from '@fullstackhouse/nestjs-outbox';
 import { MikroOrmOutboxTransportEvent } from '../model/mikroorm-outbox-transport-event.model';
 
@@ -57,5 +57,13 @@ export class MikroORMDatabaseDriver implements DatabaseDriver {
 
   createOutboxTransportEvent(eventName: string, eventPayload: any, expireAt: number, readyToRetryAfter: number | null): OutboxTransportEvent {
     return new MikroOrmOutboxTransportEvent().create(eventName, eventPayload, expireAt, readyToRetryAfter);
+  }
+
+  async findPendingEvents(limit: number): Promise<OutboxTransportEvent[]> {
+    return this.em.find(
+      MikroOrmOutboxTransportEvent,
+      { [raw('json_array_length(delivered_to_listeners)')]: 0 },
+      { limit }
+    );
   }
 }

@@ -3,6 +3,7 @@ import { DiscoveryModule } from '@nestjs/core';
 import { DATABASE_DRIVER_FACTORY_TOKEN } from './driver/database-driver.factory';
 import { TransactionalEventEmitter } from './emitter/transactional-event-emitter';
 import { EventValidator } from './event-validator/event.validator';
+import { OutboxEventFlusher } from './flusher/outbox-event-flusher';
 import { ASYNC_OPTIONS_TYPE, ConfigurableModuleClass, OutboxModuleOptions, MODULE_OPTIONS_TOKEN } from './outbox.module-definition';
 import { ListenerDiscovery } from './listener/discovery/listener.discovery';
 import { LoggerMiddleware } from './middleware/logger.middleware';
@@ -36,8 +37,9 @@ const DEFAULT_MIDDLEWARES: Type<OutboxMiddleware>[] = [LoggerMiddleware];
     ListenerDiscovery,
     EventConfigurationResolver,
     EventValidator,
+    OutboxEventFlusher,
   ],
-  exports: [TransactionalEventEmitter],
+  exports: [TransactionalEventEmitter, OutboxEventFlusher],
 })
 export class OutboxModule extends ConfigurableModuleClass {
   static registerAsync(options: typeof ASYNC_OPTIONS_TYPE): DynamicModule {
@@ -73,7 +75,7 @@ export class OutboxModule extends ConfigurableModuleClass {
           inject: middlewares,
         } as Provider<any>,
       ],
-      exports: [TransactionalEventEmitter],
+      exports: [TransactionalEventEmitter, OutboxEventFlusher],
     };
   }
 }
