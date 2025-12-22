@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MetricsOutboxMiddleware } from '../metrics.outbox-middleware';
-import { OutboxEventContext, OutboxListenerResult } from '@fullstackhouse/nestjs-outbox';
+import { OutboxEventContext, OutboxListenerResult, DeadLetterContext } from '@fullstackhouse/nestjs-outbox';
 
 const mockCounter = {
   add: vi.fn(),
@@ -43,6 +43,7 @@ describe('MetricsOutboxMiddleware', () => {
       expect(mockMeter.createCounter).toHaveBeenCalledWith('outbox.events.processed', expect.any(Object));
       expect(mockMeter.createCounter).toHaveBeenCalledWith('outbox.events.succeeded', expect.any(Object));
       expect(mockMeter.createCounter).toHaveBeenCalledWith('outbox.events.failed', expect.any(Object));
+      expect(mockMeter.createCounter).toHaveBeenCalledWith('outbox.events.dead_lettered', expect.any(Object));
       expect(mockMeter.createHistogram).toHaveBeenCalledWith('outbox.processing.duration', expect.any(Object));
     });
 
@@ -105,6 +106,25 @@ describe('MetricsOutboxMiddleware', () => {
       middleware.afterProcess(context, result);
 
       expect(mockCounter.add).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('onDeadLetter', () => {
+    it('increments dead lettered counter with event name and retry count', () => {
+      const deadLetterContext: DeadLetterContext = {
+        eventName: 'OrderCreated',
+        eventPayload: { orderId: 1 },
+        eventId: 456,
+        retryCount: 10,
+        deliveredToListeners: ['Listener1'],
+      };
+
+      middleware.onDeadLetter(deadLetterContext);
+
+      expect(mockCounter.add).toHaveBeenCalledWith(1, {
+        'outbox.event_name': 'OrderCreated',
+        'outbox.retry_count': 10,
+      });
     });
   });
 });

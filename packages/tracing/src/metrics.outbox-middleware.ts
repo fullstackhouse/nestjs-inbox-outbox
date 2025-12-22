@@ -5,6 +5,7 @@ import {
   OutboxEventContext,
   OutboxListenerResult,
   OutboxEvent,
+  DeadLetterContext,
 } from '@fullstackhouse/nestjs-outbox';
 import { DEFAULT_TRACER_NAME } from './tracing-options.interface';
 
@@ -21,6 +22,7 @@ export class MetricsOutboxMiddleware implements OutboxMiddleware {
   private readonly eventsProcessedCounter: Counter;
   private readonly eventsSucceededCounter: Counter;
   private readonly eventsFailedCounter: Counter;
+  private readonly eventsDeadLetteredCounter: Counter;
   private readonly processingDurationHistogram: Histogram;
 
   constructor(
@@ -51,6 +53,11 @@ export class MetricsOutboxMiddleware implements OutboxMiddleware {
       unit: '{execution}',
     });
 
+    this.eventsDeadLetteredCounter = this.meter.createCounter('outbox.events.dead_lettered', {
+      description: 'Total number of events moved to dead letter queue after exceeding max retries',
+      unit: '{event}',
+    });
+
     this.processingDurationHistogram = this.meter.createHistogram('outbox.processing.duration', {
       description: 'Duration of outbox event listener processing',
       unit: 'ms',
@@ -78,5 +85,12 @@ export class MetricsOutboxMiddleware implements OutboxMiddleware {
     } else {
       this.eventsFailedCounter.add(1, attributes);
     }
+  }
+
+  onDeadLetter(context: DeadLetterContext): void {
+    this.eventsDeadLetteredCounter.add(1, {
+      'outbox.event_name': context.eventName,
+      'outbox.retry_count': context.retryCount,
+    });
   }
 }
