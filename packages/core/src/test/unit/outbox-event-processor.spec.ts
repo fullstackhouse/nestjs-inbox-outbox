@@ -712,4 +712,176 @@ describe('OutboxEventProcessor', () => {
             expect(host.getArgByIndex(0)).toBe(context);
         });
     });
+
+    describe('Timeout cancellation', () => {
+        it('Should timeout listener and call error hooks with timeout error', async () => {
+            outboxOptions.events = [
+                {
+                    name: 'newEvent',
+                    listeners: {
+                        retentionPeriod: 1000,
+                        maxRetries: 5,
+                        maxExecutionTime: 50,
+                    },
+                },
+            ];
+
+            const listener: IListener<any> = {
+                handle: vi.fn().mockImplementation(() => new Promise(resolve => setTimeout(resolve, 200))),
+                getName: vi.fn().mockReturnValue('slowListener'),
+            };
+
+            const middleware: OutboxMiddleware = {
+                onError: vi.fn(),
+                afterProcess: vi.fn(),
+            };
+
+            const outboxEventProcessor = new OutboxEventProcessor(
+                mockLogger,
+                mockedDriverFactory,
+                mockedEventConfigurationResolver,
+                [middleware]
+            );
+
+            const outboxTransportEvent: OutboxTransportEvent = {
+                attemptAt: new Date().getTime(),
+                deliveredToListeners: [],
+                eventName: 'newEvent',
+                eventPayload: {},
+                expireAt: new Date().getTime() + 1000,
+                id: 1,
+                insertedAt: new Date().getTime(),
+                retryCount: 0,
+                status: 'pending',
+            };
+
+            await outboxEventProcessor.process(outboxOptions.events[0], outboxTransportEvent, [listener]);
+
+            expect(middleware.onError).toHaveBeenCalledWith(
+                expect.anything(),
+                expect.objectContaining({
+                    message: expect.stringContaining('has been timed out'),
+                })
+            );
+            expect(middleware.afterProcess).toHaveBeenCalledWith(
+                expect.anything(),
+                expect.objectContaining({
+                    success: false,
+                    error: expect.objectContaining({
+                        message: expect.stringContaining('has been timed out'),
+                    }),
+                })
+            );
+            expect(mockedDriver.remove).not.toHaveBeenCalled();
+        });
+
+        it('Should cancel timeout when listener completes successfully', async () => {
+            outboxOptions.events = [
+                {
+                    name: 'newEvent',
+                    listeners: {
+                        retentionPeriod: 1000,
+                        maxRetries: 5,
+                        maxExecutionTime: 500,
+                    },
+                },
+            ];
+
+            const listener: IListener<any> = {
+                handle: vi.fn().mockResolvedValue(undefined),
+                getName: vi.fn().mockReturnValue('fastListener'),
+            };
+
+            const middleware: OutboxMiddleware = {
+                onError: vi.fn(),
+                afterProcess: vi.fn(),
+            };
+
+            const outboxEventProcessor = new OutboxEventProcessor(
+                mockLogger,
+                mockedDriverFactory,
+                mockedEventConfigurationResolver,
+                [middleware]
+            );
+
+            const outboxTransportEvent: OutboxTransportEvent = {
+                attemptAt: new Date().getTime(),
+                deliveredToListeners: [],
+                eventName: 'newEvent',
+                eventPayload: {},
+                expireAt: new Date().getTime() + 1000,
+                id: 1,
+                insertedAt: new Date().getTime(),
+                retryCount: 0,
+                status: 'pending',
+            };
+
+            await outboxEventProcessor.process(outboxOptions.events[0], outboxTransportEvent, [listener]);
+
+            expect(middleware.onError).not.toHaveBeenCalled();
+            expect(middleware.afterProcess).toHaveBeenCalledWith(
+                expect.anything(),
+                expect.objectContaining({
+                    success: true,
+                })
+            );
+        });
+
+        it('Should cancel timeout when listener throws error before timeout', async () => {
+            outboxOptions.events = [
+                {
+                    name: 'newEvent',
+                    listeners: {
+                        retentionPeriod: 1000,
+                        maxRetries: 5,
+                        maxExecutionTime: 500,
+                    },
+                },
+            ];
+
+            const testError = new Error('Listener failed');
+            const listener: IListener<any> = {
+                handle: vi.fn().mockRejectedValue(testError),
+                getName: vi.fn().mockReturnValue('failingListener'),
+            };
+
+            const middleware: OutboxMiddleware = {
+                onError: vi.fn(),
+                afterProcess: vi.fn(),
+            };
+
+            const outboxEventProcessor = new OutboxEventProcessor(
+                mockLogger,
+                mockedDriverFactory,
+                mockedEventConfigurationResolver,
+                [middleware]
+            );
+
+            const outboxTransportEvent: OutboxTransportEvent = {
+                attemptAt: new Date().getTime(),
+                deliveredToListeners: [],
+                eventName: 'newEvent',
+                eventPayload: {},
+                expireAt: new Date().getTime() + 1000,
+                id: 1,
+                insertedAt: new Date().getTime(),
+                retryCount: 0,
+                status: 'pending',
+            };
+
+            await outboxEventProcessor.process(outboxOptions.events[0], outboxTransportEvent, [listener]);
+
+            expect(middleware.onError).toHaveBeenCalledWith(
+                expect.anything(),
+                testError
+            );
+            expect(middleware.afterProcess).toHaveBeenCalledWith(
+                expect.anything(),
+                expect.objectContaining({
+                    success: false,
+                    error: testError,
+                })
+            );
+        });
+    });
 });
