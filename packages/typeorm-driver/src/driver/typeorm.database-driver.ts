@@ -8,14 +8,16 @@ export class TypeORMDatabaseDriver implements DatabaseDriver {
   private entitiesToPersist: object[] = [];
   private entitiesToRemove: object[] = [];
 
-  constructor(private readonly dataSource: DataSource, private readonly eventConfigurationResolver: EventConfigurationResolverContract) {}
+  constructor(
+    private readonly dataSource: DataSource,
+    private readonly eventConfigurationResolver: EventConfigurationResolverContract,
+  ) {}
 
   async findAndExtendReadyToRetryEvents(limit: number): Promise<OutboxTransportEvent[]> {
     let events: TypeOrmOutboxTransportEvent[] = [];
 
     await this.dataSource.transaction(async (transactionalEntityManager) => {
       const now = new Date();
-
       events = await transactionalEntityManager.find(TypeOrmOutboxTransportEvent, {
         where: {
           attemptAt: LessThanOrEqual(now.getTime()),
