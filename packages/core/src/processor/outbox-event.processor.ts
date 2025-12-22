@@ -56,67 +56,56 @@ export class OutboxEventProcessor implements OutboxEventProcessorContract {
     return databaseDriver.flush();
   }
 
-  private executeListenerWithTimeout(
+  private async executeListenerWithTimeout(
     listener: IListener<any>,
     outboxTransportEvent: OutboxTransportEvent,
     eventOptions: OutboxModuleEventOptions,
   ): Promise<{ listenerName: string, hasFailed: boolean }> {
-    return new Promise(async (resolve) => {
-      let timeoutTimer: NodeJS.Timeout;
-      const context = createOutboxEventContext(outboxTransportEvent, listener.getName());
-      const startTime = Date.now();
+    const context = createOutboxEventContext(outboxTransportEvent, listener.getName());
+    const startTime = Date.now();
+    const signal = AbortSignal.timeout(eventOptions.listeners.maxExecutionTime);
 
-      try {
-        await this.invokeBeforeProcessHooks(context);
+    try {
+      await this.invokeBeforeProcessHooks(context);
 
-        timeoutTimer = setTimeout(async () => {
-          const durationMs = Date.now() - startTime;
-          const timeoutError = new Error(`Listener ${listener.getName()} has been timed out`);
-
-          this.logger.error(
-            timeoutError.message,
-            this.buildEventContext(outboxTransportEvent),
-          );
-
-          await this.invokeOnErrorHooks(context, timeoutError);
-          await this.invokeExceptionFilters(context, timeoutError);
-          await this.invokeAfterProcessHooks(context, { success: false, error: timeoutError, durationMs });
-
-          resolve({
-            listenerName: listener.getName(),
-            hasFailed: true,
-          });
-        }, eventOptions.listeners.maxExecutionTime);
-
-        await this.wrapExecution(context, async () => {
+      await Promise.race([
+        this.wrapExecution(context, async () => {
           await listener.handle(outboxTransportEvent.eventPayload, outboxTransportEvent.eventName);
-        });
-        clearTimeout(timeoutTimer);
+        }),
+        new Promise<never>((_, reject) => {
+          signal.addEventListener('abort', () => {
+            reject(new Error(`Listener ${listener.getName()} has been timed out`));
+          }, { once: true });
+        }),
+      ]);
 
-        const durationMs = Date.now() - startTime;
-        await this.invokeAfterProcessHooks(context, { success: true, durationMs });
+      const durationMs = Date.now() - startTime;
+      await this.invokeAfterProcessHooks(context, { success: true, durationMs });
 
-        resolve({
-          listenerName: listener.getName(),
-          hasFailed: false,
-        });
-      } catch (exception) {
-        clearTimeout(timeoutTimer!);
-        const error = exception instanceof Error ? exception : new Error(String(exception));
-        const durationMs = Date.now() - startTime;
+      return {
+        listenerName: listener.getName(),
+        hasFailed: false,
+      };
+    } catch (exception) {
+      const error = exception instanceof Error ? exception : new Error(String(exception));
+      const durationMs = Date.now() - startTime;
 
+      const isTimeout = error.message.includes('has been timed out');
+      if (isTimeout) {
+        this.logger.error(error.message, this.buildEventContext(outboxTransportEvent));
+      } else {
         this.logger.error(exception);
-
-        await this.invokeOnErrorHooks(context, error);
-        await this.invokeExceptionFilters(context, error);
-        await this.invokeAfterProcessHooks(context, { success: false, error, durationMs });
-
-        resolve({
-          listenerName: listener.getName(),
-          hasFailed: true,
-        });
       }
-    });
+
+      await this.invokeOnErrorHooks(context, error);
+      await this.invokeExceptionFilters(context, error);
+      await this.invokeAfterProcessHooks(context, { success: false, error, durationMs });
+
+      return {
+        listenerName: listener.getName(),
+        hasFailed: true,
+      };
+    }
   }
 
   private async invokeBeforeProcessHooks(context: OutboxEventContext): Promise<void> {
