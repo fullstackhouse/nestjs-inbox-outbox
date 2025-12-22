@@ -110,7 +110,7 @@ describe('RetryableOutboxEventPoller', () => {
         eventName: 'testEvent',
         eventPayload: {},
         deliveredToListeners: [],
-        readyToRetryAfter: Date.now(),
+        attemptAt: Date.now(),
         expireAt: Date.now() + 1000,
         insertedAt: Date.now(),
         retryCount: 0,

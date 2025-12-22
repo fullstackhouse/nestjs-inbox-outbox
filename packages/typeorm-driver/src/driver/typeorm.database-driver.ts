@@ -18,7 +18,7 @@ export class TypeORMDatabaseDriver implements DatabaseDriver {
 
       events = await transactionalEntityManager.find(TypeOrmOutboxTransportEvent, {
         where: {
-          readyToRetryAfter: LessThanOrEqual(now.getTime()),
+          attemptAt: LessThanOrEqual(now.getTime()),
           status: 'pending',
         },
         take: limit,
@@ -32,12 +32,12 @@ export class TypeORMDatabaseDriver implements DatabaseDriver {
         event.retryCount += 1;
 
         if (event.retryCount >= maxRetries) {
-          event.status = 'dlq';
-          event.readyToRetryAfter = null;
+          event.status = 'failed';
+          event.attemptAt = null;
         } else {
           const retryStrategy = eventConfig.listeners.retryStrategy ?? defaultRetryStrategy;
           const delayMs = retryStrategy(event.retryCount);
-          event.readyToRetryAfter = now.getTime() + delayMs;
+          event.attemptAt = now.getTime() + delayMs;
         }
       });
 
@@ -65,8 +65,8 @@ export class TypeORMDatabaseDriver implements DatabaseDriver {
     this.entitiesToRemove = [];
   }
 
-  createOutboxTransportEvent(eventName: string, eventPayload: any, expireAt: number, readyToRetryAfter: number | null): OutboxTransportEvent {
-    return new TypeOrmOutboxTransportEvent().create(eventName, eventPayload, expireAt, readyToRetryAfter);
+  createOutboxTransportEvent(eventName: string, eventPayload: any, expireAt: number, attemptAt: number | null): OutboxTransportEvent {
+    return new TypeOrmOutboxTransportEvent().create(eventName, eventPayload, expireAt, attemptAt);
   }
 
   async findPendingEvents(limit: number): Promise<OutboxTransportEvent[]> {

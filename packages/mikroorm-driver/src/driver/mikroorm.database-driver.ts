@@ -25,7 +25,7 @@ export class MikroORMDatabaseDriver implements DatabaseDriver {
     await this.em.transactional(async em => {
       const now = new Date();
       events = await em.find(MikroOrmOutboxTransportEvent, {
-        readyToRetryAfter: { $lte: now.getTime() },
+        attemptAt: { $lte: now.getTime() },
         status: 'pending',
       }, {
         limit,
@@ -39,12 +39,12 @@ export class MikroORMDatabaseDriver implements DatabaseDriver {
         event.retryCount += 1;
 
         if (event.retryCount >= maxRetries) {
-          event.status = 'dlq';
-          event.readyToRetryAfter = null;
+          event.status = 'failed';
+          event.attemptAt = null;
         } else {
           const retryStrategy = eventConfig.listeners.retryStrategy ?? defaultRetryStrategy;
           const delayMs = retryStrategy(event.retryCount);
-          event.readyToRetryAfter = now.getTime() + delayMs;
+          event.attemptAt = now.getTime() + delayMs;
         }
       });
 
@@ -69,8 +69,8 @@ export class MikroORMDatabaseDriver implements DatabaseDriver {
     }
   }
 
-  createOutboxTransportEvent(eventName: string, eventPayload: any, expireAt: number, readyToRetryAfter: number | null): OutboxTransportEvent {
-    return new MikroOrmOutboxTransportEvent().create(eventName, eventPayload, expireAt, readyToRetryAfter);
+  createOutboxTransportEvent(eventName: string, eventPayload: any, expireAt: number, attemptAt: number | null): OutboxTransportEvent {
+    return new MikroOrmOutboxTransportEvent().create(eventName, eventPayload, expireAt, attemptAt);
   }
 
   async findPendingEvents(limit: number): Promise<OutboxTransportEvent[]> {

@@ -207,7 +207,7 @@ describe('MikroORMDatabaseDriver', () => {
       expect(events[0].eventName).toBe('ReadyEvent');
     });
 
-    it('should extend readyToRetryAfter timestamp and increment retryCount', async () => {
+    it('should extend attemptAt timestamp and increment retryCount', async () => {
       const setupEm = orm.em.fork();
       const now = Date.now();
       const originalRetryAfter = now - 1000;
@@ -222,20 +222,20 @@ describe('MikroORMDatabaseDriver', () => {
       const events = await driver.findAndExtendReadyToRetryEvents(10);
 
       expect(events).toHaveLength(1);
-      expect(events[0].readyToRetryAfter).toBeGreaterThan(now);
+      expect(events[0].attemptAt).toBeGreaterThan(now);
       expect(events[0].retryCount).toBe(1);
 
       const checkEm = orm.em.fork();
       const persisted = await checkEm.findOne(MikroOrmOutboxTransportEvent, { eventName: 'ExtendTest' });
-      expect(persisted!.readyToRetryAfter).toBeGreaterThan(now);
+      expect(persisted!.attemptAt).toBeGreaterThan(now);
       expect(persisted!.retryCount).toBe(1);
     });
 
-    it('should move event to DLQ when max retries exceeded', async () => {
+    it('should move event to failed status when max retries exceeded', async () => {
       const setupEm = orm.em.fork();
       const now = Date.now();
 
-      const event = new MikroOrmOutboxTransportEvent().create('DlqTest', {}, now + 60000, now - 1000);
+      const event = new MikroOrmOutboxTransportEvent().create('FailedTest', {}, now + 60000, now - 1000);
       event.retryCount = 4;
       setupEm.persist(event);
       await setupEm.flush();
@@ -248,9 +248,9 @@ describe('MikroORMDatabaseDriver', () => {
       expect(events).toHaveLength(0);
 
       const checkEm = orm.em.fork();
-      const persisted = await checkEm.findOne(MikroOrmOutboxTransportEvent, { eventName: 'DlqTest' });
-      expect(persisted!.status).toBe('dlq');
-      expect(persisted!.readyToRetryAfter).toBeNull();
+      const persisted = await checkEm.findOne(MikroOrmOutboxTransportEvent, { eventName: 'FailedTest' });
+      expect(persisted!.status).toBe('failed');
+      expect(persisted!.attemptAt).toBeNull();
     });
 
     it('should respect limit parameter', async () => {

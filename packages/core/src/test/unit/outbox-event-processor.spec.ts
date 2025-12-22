@@ -71,7 +71,7 @@ describe('OutboxEventProcessor', () => {
         );
 
         const outboxTransportEvent : OutboxTransportEvent = {
-            readyToRetryAfter: new Date().getTime(),
+            attemptAt: new Date().getTime(),
             deliveredToListeners: [],
             eventName: 'newEvent',
             eventPayload: {},
@@ -121,7 +121,7 @@ describe('OutboxEventProcessor', () => {
         );
 
         const outboxTransportEvent : OutboxTransportEvent = {
-            readyToRetryAfter: new Date().getTime(),
+            attemptAt: new Date().getTime(),
             deliveredToListeners: [],
             eventName: 'newEvent',
             eventPayload: {},
@@ -172,7 +172,7 @@ describe('OutboxEventProcessor', () => {
             );
 
             const outboxTransportEvent: OutboxTransportEvent = {
-                readyToRetryAfter: new Date().getTime(),
+                attemptAt: new Date().getTime(),
                 deliveredToListeners: [],
                 eventName: 'newEvent',
                 eventPayload: { test: 'data' },
@@ -242,7 +242,7 @@ describe('OutboxEventProcessor', () => {
             );
 
             const outboxTransportEvent: OutboxTransportEvent = {
-                readyToRetryAfter: new Date().getTime(),
+                attemptAt: new Date().getTime(),
                 deliveredToListeners: [],
                 eventName: 'newEvent',
                 eventPayload: {},
@@ -306,7 +306,7 @@ describe('OutboxEventProcessor', () => {
             );
 
             const outboxTransportEvent: OutboxTransportEvent = {
-                readyToRetryAfter: new Date().getTime(),
+                attemptAt: new Date().getTime(),
                 deliveredToListeners: [],
                 eventName: 'newEvent',
                 eventPayload: {},
@@ -354,7 +354,7 @@ describe('OutboxEventProcessor', () => {
             );
 
             const outboxTransportEvent: OutboxTransportEvent = {
-                readyToRetryAfter: new Date().getTime(),
+                attemptAt: new Date().getTime(),
                 deliveredToListeners: [],
                 eventName: 'newEvent',
                 eventPayload: {},
@@ -399,7 +399,7 @@ describe('OutboxEventProcessor', () => {
             );
 
             const outboxTransportEvent: OutboxTransportEvent = {
-                readyToRetryAfter: new Date().getTime(),
+                attemptAt: new Date().getTime(),
                 deliveredToListeners: [],
                 eventName: 'newEvent',
                 eventPayload: {},
@@ -458,7 +458,7 @@ describe('OutboxEventProcessor', () => {
             );
 
             const outboxTransportEvent: OutboxTransportEvent = {
-                readyToRetryAfter: new Date().getTime(),
+                attemptAt: new Date().getTime(),
                 deliveredToListeners: [],
                 eventName: 'newEvent',
                 eventPayload: { test: 'data' },
@@ -518,7 +518,7 @@ describe('OutboxEventProcessor', () => {
             );
 
             const outboxTransportEvent: OutboxTransportEvent = {
-                readyToRetryAfter: new Date().getTime(),
+                attemptAt: new Date().getTime(),
                 deliveredToListeners: [],
                 eventName: 'newEvent',
                 eventPayload: {},
@@ -567,7 +567,7 @@ describe('OutboxEventProcessor', () => {
             );
 
             const outboxTransportEvent: OutboxTransportEvent = {
-                readyToRetryAfter: new Date().getTime(),
+                attemptAt: new Date().getTime(),
                 deliveredToListeners: [],
                 eventName: 'newEvent',
                 eventPayload: {},
@@ -616,7 +616,7 @@ describe('OutboxEventProcessor', () => {
             );
 
             const outboxTransportEvent: OutboxTransportEvent = {
-                readyToRetryAfter: new Date().getTime(),
+                attemptAt: new Date().getTime(),
                 deliveredToListeners: [],
                 eventName: 'newEvent',
                 eventPayload: {},
@@ -671,7 +671,7 @@ describe('OutboxEventProcessor', () => {
             );
 
             const outboxTransportEvent: OutboxTransportEvent = {
-                readyToRetryAfter: new Date().getTime(),
+                attemptAt: new Date().getTime(),
                 deliveredToListeners: [],
                 eventName: 'newEvent',
                 eventPayload: {},

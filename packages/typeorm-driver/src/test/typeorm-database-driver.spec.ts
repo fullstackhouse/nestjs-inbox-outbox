@@ -192,7 +192,7 @@ describe('TypeORMDatabaseDriver', () => {
       expect(events[0].eventName).toBe('ReadyEvent');
     });
 
-    it('should extend readyToRetryAfter timestamp and increment retryCount', async () => {
+    it('should extend attemptAt timestamp and increment retryCount', async () => {
       const now = Date.now();
       const originalRetryAfter = now - 1000;
 
@@ -204,18 +204,18 @@ describe('TypeORMDatabaseDriver', () => {
       const events = await driver.findAndExtendReadyToRetryEvents(10);
 
       expect(events).toHaveLength(1);
-      expect(events[0].readyToRetryAfter).toBeGreaterThan(now);
+      expect(events[0].attemptAt).toBeGreaterThan(now);
       expect(events[0].retryCount).toBe(1);
 
       const persisted = await dataSource.getRepository(TypeOrmOutboxTransportEvent).findOneBy({ eventName: 'ExtendTest' });
-      expect(Number(persisted!.readyToRetryAfter)).toBeGreaterThan(now);
+      expect(Number(persisted!.attemptAt)).toBeGreaterThan(now);
       expect(persisted!.retryCount).toBe(1);
     });
 
-    it('should move event to DLQ when max retries exceeded', async () => {
+    it('should move event to failed status when max retries exceeded', async () => {
       const now = Date.now();
 
-      const event = new TypeOrmOutboxTransportEvent().create('DlqTest', {}, now + 60000, now - 1000);
+      const event = new TypeOrmOutboxTransportEvent().create('FailedTest', {}, now + 60000, now - 1000);
       event.retryCount = 4;
       await dataSource.getRepository(TypeOrmOutboxTransportEvent).save(event);
 
@@ -225,9 +225,9 @@ describe('TypeORMDatabaseDriver', () => {
 
       expect(events).toHaveLength(0);
 
-      const persisted = await dataSource.getRepository(TypeOrmOutboxTransportEvent).findOneBy({ eventName: 'DlqTest' });
-      expect(persisted!.status).toBe('dlq');
-      expect(persisted!.readyToRetryAfter).toBeNull();
+      const persisted = await dataSource.getRepository(TypeOrmOutboxTransportEvent).findOneBy({ eventName: 'FailedTest' });
+      expect(persisted!.status).toBe('failed');
+      expect(persisted!.attemptAt).toBeNull();
     });
 
     it('should respect limit parameter', async () => {
