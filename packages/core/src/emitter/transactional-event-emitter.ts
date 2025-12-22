@@ -59,7 +59,7 @@ export class TransactionalEventEmitter {
       processedEvent.name,
       processedEvent,
       currentTimestamp + eventOptions.listeners.expiresAtTTL,
-      currentTimestamp + eventOptions.listeners.readyToRetryAfterTTL,
+      currentTimestamp,
     );
     const persister = customDatabaseDriverPersister ?? databaseDriver;
     

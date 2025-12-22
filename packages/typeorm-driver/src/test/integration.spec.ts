@@ -348,7 +348,7 @@ describe('Integration Tests', () => {
       });
     });
 
-    it('should set readyToRetryAfter based on configuration', async () => {
+    it('should set readyToRetryAfter to current time on initial insert for immediate processing', async () => {
       const emitter = context.module.get(TransactionalEventEmitter);
       const dataSource = context.dataSource;
 
@@ -372,7 +372,8 @@ describe('Integration Tests', () => {
       const transportEvents = await dataSource.getRepository(TypeOrmOutboxTransportEvent).findBy({ eventName: 'UserCreated' });
 
       expect(transportEvents).toHaveLength(1);
-      expect(Number(transportEvents[0].readyToRetryAfter)).toBeGreaterThanOrEqual(beforeEmit + 100);
+      expect(Number(transportEvents[0].readyToRetryAfter)).toBeGreaterThanOrEqual(beforeEmit);
+      expect(Number(transportEvents[0].readyToRetryAfter)).toBeLessThan(beforeEmit + 100);
     });
 
     it('should set expireAt based on configuration', async () => {
