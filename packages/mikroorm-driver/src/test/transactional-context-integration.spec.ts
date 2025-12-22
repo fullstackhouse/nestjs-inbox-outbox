@@ -6,6 +6,7 @@ import {
   TransactionalEventEmitter,
   OutboxEvent,
   IListener,
+  OutboxEventFlusher,
 } from '@fullstackhouse/nestjs-outbox';
 import { MikroOrmOutboxTransportEvent } from '../model/mikroorm-outbox-transport-event.model';
 import { createTestApp, cleanupTestApp, TestContext } from './test-utils';
@@ -96,6 +97,7 @@ describe('@Transactional() decorator integration', () => {
 
     it('should persist entity and event in the same transaction', async () => {
       const emitter = context.module.get(TransactionalEventEmitter);
+      const flusher = context.module.get(OutboxEventFlusher);
       const orm = context.orm;
 
       const handledEvents: OrderCreatedEvent[] = [];
@@ -117,7 +119,7 @@ describe('@Transactional() decorator integration', () => {
         await emitter.emit(new OrderCreatedEvent(order.id, order.customerEmail));
       });
 
-      await new Promise((resolve) => setTimeout(resolve, 200));
+      await flusher.processAllPendingEvents();
 
       const checkEm = orm.em.fork();
       const orders = await checkEm.find(Order, {});
@@ -166,6 +168,7 @@ describe('@Transactional() decorator integration', () => {
 
     it('should work with nested @Transactional calls', async () => {
       const emitter = context.module.get(TransactionalEventEmitter);
+      const flusher = context.module.get(OutboxEventFlusher);
       const orm = context.orm;
 
       const handledEvents: OrderCreatedEvent[] = [];
@@ -197,7 +200,7 @@ describe('@Transactional() decorator integration', () => {
         await emitter.emit(new OrderCreatedEvent(order1.id, order1.customerEmail));
       });
 
-      await new Promise((resolve) => setTimeout(resolve, 200));
+      await flusher.processAllPendingEvents();
 
       const checkEm = orm.em.fork();
       const orders = await checkEm.find(Order, {});
@@ -247,6 +250,7 @@ describe('@Transactional() decorator integration', () => {
 
     it('should persist event independently when user transaction rolls back (separate fork)', async () => {
       const emitter = context.module.get(TransactionalEventEmitter);
+      const flusher = context.module.get(OutboxEventFlusher);
       const orm = context.orm;
 
       const handledEvents: OrderCreatedEvent[] = [];
@@ -273,7 +277,7 @@ describe('@Transactional() decorator integration', () => {
         }),
       ).rejects.toThrow('Intentional rollback');
 
-      await new Promise((resolve) => setTimeout(resolve, 200));
+      await flusher.processAllPendingEvents();
 
       const checkEm = orm.em.fork();
       const orders = await checkEm.find(Order, { customerEmail: 'isolated@example.com' });
