@@ -6,6 +6,7 @@ import {
   TransactionalEventEmitterOperations,
   OutboxEvent,
   IListener,
+  OutboxEventFlusher,
 } from '@fullstackhouse/nestjs-outbox';
 import { MikroOrmOutboxTransportEvent } from '../model/mikroorm-outbox-transport-event.model';
 import { createTestApp, cleanupTestApp, TestContext } from './test-utils';
@@ -80,6 +81,7 @@ describe('MySQL Integration Tests', () => {
 
     it('should emit an event and persist the entity', async () => {
       const emitter = context.module.get(TransactionalEventEmitter);
+      const flusher = context.module.get(OutboxEventFlusher);
       const orm = context.orm;
 
       const user = new User();
@@ -97,12 +99,14 @@ describe('MySQL Integration Tests', () => {
 
       const event = new UserCreatedEvent(1, 'test@example.com');
 
-      await emitter.emitAsync(event, [{ operation: TransactionalEventEmitterOperations.persist, entity: user }]);
+      await emitter.emit(event, [{ operation: TransactionalEventEmitterOperations.persist, entity: user }]);
 
       const em = orm.em.fork();
       const users = await em.find(User, {});
       expect(users).toHaveLength(1);
       expect(users[0].email).toBe('test@example.com');
+
+      await flusher.processAllPendingEvents();
 
       expect(handledEvents).toHaveLength(1);
       expect(handledEvents[0]).toMatchObject({
@@ -114,6 +118,7 @@ describe('MySQL Integration Tests', () => {
 
     it('should persist entity and event atomically', async () => {
       const emitter = context.module.get(TransactionalEventEmitter);
+      const flusher = context.module.get(OutboxEventFlusher);
       const orm = context.orm;
 
       const user = new User();
@@ -131,12 +136,14 @@ describe('MySQL Integration Tests', () => {
 
       const event = new UserCreatedEvent(2, 'atomic@example.com');
 
-      await emitter.emitAsync(event, [{ operation: TransactionalEventEmitterOperations.persist, entity: user }]);
+      await emitter.emit(event, [{ operation: TransactionalEventEmitterOperations.persist, entity: user }]);
 
       const em = orm.em.fork();
       const users = await em.find(User, { email: 'atomic@example.com' });
 
       expect(users).toHaveLength(1);
+
+      await flusher.processAllPendingEvents();
       expect(handlerCalled).toBe(true);
     });
 
@@ -159,8 +166,6 @@ describe('MySQL Integration Tests', () => {
         { operation: TransactionalEventEmitterOperations.persist, entity: user2 },
       ]);
 
-      await new Promise(resolve => setTimeout(resolve, 100));
-
       const em = orm.em.fork();
       const users = await em.find(User, {});
       expect(users).toHaveLength(2);
@@ -179,6 +184,7 @@ describe('MySQL Integration Tests', () => {
       const userId = user.id;
 
       const emitter = context.module.get(TransactionalEventEmitter);
+      const flusher = context.module.get(OutboxEventFlusher);
 
       let handlerCalled = false;
       let deletedUserId: number | undefined;
@@ -195,11 +201,13 @@ describe('MySQL Integration Tests', () => {
       const userToDelete = await checkEm.findOne(User, { id: userId });
 
       const event = new UserDeletedEvent(userId);
-      await emitter.emitAsync(event, [{ operation: TransactionalEventEmitterOperations.remove, entity: userToDelete! }]);
+      await emitter.emit(event, [{ operation: TransactionalEventEmitterOperations.remove, entity: userToDelete! }]);
 
       const finalEm = orm.em.fork();
       const deletedUser = await finalEm.findOne(User, { id: userId });
       expect(deletedUser).toBeNull();
+
+      await flusher.processAllPendingEvents();
       expect(handlerCalled).toBe(true);
       expect(deletedUserId).toBe(userId);
     });
@@ -216,6 +224,7 @@ describe('MySQL Integration Tests', () => {
 
     it('should add and invoke listeners', async () => {
       const emitter = context.module.get(TransactionalEventEmitter);
+      const flusher = context.module.get(OutboxEventFlusher);
       const orm = context.orm;
 
       const handledEvents: UserCreatedEvent[] = [];
@@ -235,7 +244,9 @@ describe('MySQL Integration Tests', () => {
 
       const event = new UserCreatedEvent(1, 'listener@example.com');
 
-      await emitter.emitAsync(event, [{ operation: TransactionalEventEmitterOperations.persist, entity: user }]);
+      await emitter.emit(event, [{ operation: TransactionalEventEmitterOperations.persist, entity: user }]);
+
+      await flusher.processAllPendingEvents();
 
       expect(handledEvents).toHaveLength(1);
       expect(handledEvents[0].email).toBe('listener@example.com');
@@ -280,6 +291,7 @@ describe('MySQL Integration Tests', () => {
 
     it('should handle multiple listeners for same event', async () => {
       const emitter = context.module.get(TransactionalEventEmitter);
+      const flusher = context.module.get(OutboxEventFlusher);
 
       const results: string[] = [];
 
@@ -306,7 +318,9 @@ describe('MySQL Integration Tests', () => {
 
       const event = new UserCreatedEvent(1, 'multi@example.com');
 
-      await emitter.emitAsync(event, [{ operation: TransactionalEventEmitterOperations.persist, entity: user }]);
+      await emitter.emit(event, [{ operation: TransactionalEventEmitterOperations.persist, entity: user }]);
+
+      await flusher.processAllPendingEvents();
 
       expect(results).toContain('listener1');
       expect(results).toContain('listener2');
@@ -360,8 +374,9 @@ describe('MySQL Integration Tests', () => {
       });
     });
 
-    it('should set readyToRetryAfter based on configuration', async () => {
+    it('should keep event in database after failed processing', async () => {
       const emitter = context.module.get(TransactionalEventEmitter);
+      const flusher = context.module.get(OutboxEventFlusher);
       const orm = context.orm;
 
       const user = new User();
@@ -376,20 +391,22 @@ describe('MySQL Integration Tests', () => {
       };
       emitter.addListener('UserCreated', failingListener);
 
-      const beforeEmit = Date.now();
       const event = new UserCreatedEvent(1, 'retry@example.com');
 
-      await emitter.emitAsync(event, [{ operation: TransactionalEventEmitterOperations.persist, entity: user }]);
+      await emitter.emit(event, [{ operation: TransactionalEventEmitterOperations.persist, entity: user }]);
+
+      await flusher.processAllPendingEvents();
 
       const em = orm.em.fork();
       const transportEvents = await em.find(MikroOrmOutboxTransportEvent, { eventName: 'UserCreated' });
 
       expect(transportEvents).toHaveLength(1);
-      expect(transportEvents[0].readyToRetryAfter).toBeGreaterThanOrEqual(beforeEmit + 100);
+      expect(transportEvents[0].deliveredToListeners).toEqual([]);
     });
 
     it('should set expireAt based on configuration', async () => {
       const emitter = context.module.get(TransactionalEventEmitter);
+      const flusher = context.module.get(OutboxEventFlusher);
       const orm = context.orm;
 
       const user = new User();
@@ -407,116 +424,15 @@ describe('MySQL Integration Tests', () => {
       const beforeEmit = Date.now();
       const event = new UserCreatedEvent(1, 'expire@example.com');
 
-      await emitter.emitAsync(event, [{ operation: TransactionalEventEmitterOperations.persist, entity: user }]);
+      await emitter.emit(event, [{ operation: TransactionalEventEmitterOperations.persist, entity: user }]);
+
+      await flusher.processAllPendingEvents();
 
       const em = orm.em.fork();
       const transportEvents = await em.find(MikroOrmOutboxTransportEvent, { eventName: 'UserCreated' });
 
       expect(transportEvents).toHaveLength(1);
       expect(transportEvents[0].expireAt).toBeGreaterThanOrEqual(beforeEmit + 60000);
-    });
-  });
-
-  describe('immediateProcessing configuration with MySQL', () => {
-    it('should not process event immediately when immediateProcessing is false, but process via poller', async () => {
-      context = await createTestApp({
-        events: [
-          {
-            name: 'UserCreated',
-            listeners: {
-              expiresAtTTL: 60000,
-              readyToRetryAfterTTL: 50,
-              maxExecutionTimeTTL: 30000,
-            },
-            immediateProcessing: false,
-          },
-        ],
-        additionalEntities: [User],
-        retryEveryMilliseconds: 100,
-        maxOutboxTransportEventPerRetry: 10,
-        databaseType: 'mysql',
-      });
-
-      const emitter = context.module.get(TransactionalEventEmitter);
-      const orm = context.orm;
-
-      const handledEvents: UserCreatedEvent[] = [];
-      const listener: IListener<UserCreatedEvent> = {
-        getName: () => 'ImmediateProcessingListener',
-        handle: async (event: UserCreatedEvent) => {
-          handledEvents.push(event);
-        },
-      };
-      emitter.addListener('UserCreated', listener);
-
-      const user = new User();
-      user.email = 'deferred@example.com';
-      user.name = 'Deferred User';
-
-      const event = new UserCreatedEvent(1, 'deferred@example.com');
-
-      await emitter.emitAsync(event, [{ operation: TransactionalEventEmitterOperations.persist, entity: user }]);
-
-      expect(handledEvents).toHaveLength(0);
-
-      const em = orm.em.fork();
-      const transportEvents = await em.find(MikroOrmOutboxTransportEvent, { eventName: 'UserCreated' });
-      expect(transportEvents).toHaveLength(1);
-
-      await new Promise(resolve => setTimeout(resolve, 300));
-
-      expect(handledEvents).toHaveLength(1);
-      expect(handledEvents[0]).toMatchObject({
-        name: 'UserCreated',
-        userId: 1,
-        email: 'deferred@example.com',
-      });
-    });
-
-    it('should process event immediately when immediateProcessing is true (default)', async () => {
-      context = await createTestApp({
-        events: [
-          {
-            name: 'UserCreated',
-            listeners: {
-              expiresAtTTL: 60000,
-              readyToRetryAfterTTL: 5000,
-              maxExecutionTimeTTL: 30000,
-            },
-            immediateProcessing: true,
-          },
-        ],
-        additionalEntities: [User],
-        retryEveryMilliseconds: 10000,
-        maxOutboxTransportEventPerRetry: 10,
-        databaseType: 'mysql',
-      });
-
-      const emitter = context.module.get(TransactionalEventEmitter);
-
-      const handledEvents: UserCreatedEvent[] = [];
-      const listener: IListener<UserCreatedEvent> = {
-        getName: () => 'ImmediateListener',
-        handle: async (event: UserCreatedEvent) => {
-          handledEvents.push(event);
-        },
-      };
-      emitter.addListener('UserCreated', listener);
-
-      const user = new User();
-      user.email = 'immediate@example.com';
-      user.name = 'Immediate User';
-
-      const event = new UserCreatedEvent(1, 'immediate@example.com');
-
-      await emitter.emitAsync(event, [{ operation: TransactionalEventEmitterOperations.persist, entity: user }]);
-
-      expect(handledEvents).toHaveLength(1);
-      expect(handledEvents[0]).toMatchObject({
-        name: 'UserCreated',
-        userId: 1,
-        email: 'immediate@example.com',
-      });
     });
   });
 });
