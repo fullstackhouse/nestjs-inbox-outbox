@@ -31,8 +31,6 @@ export interface OutboxMiddleware {
   wrapExecution?<T>(context: OutboxEventContext, next: () => Promise<T>): Promise<T>;
 }
 
-export type DeadLetterHandler = (context: DeadLetterContext) => void | Promise<void>;
-
 export type OutboxMiddlewareClass = new (...args: any[]) => OutboxMiddleware;
 
 export const OUTBOX_MIDDLEWARES_TOKEN = 'OUTBOX_MIDDLEWARES_TOKEN';

@@ -104,24 +104,21 @@ export class RetryableOutboxEventPoller implements OnModuleInit, OnModuleDestroy
   }
 
   private async invokeDeadLetterHandlers(deadLetteredEvents: OutboxTransportEvent[]) {
+    if (!this.middlewares) {
+      return;
+    }
+
     for (const event of deadLetteredEvents) {
       const context = createDeadLetterContext(event);
-      const eventConfig = this.options.events.find(e => e.name === event.eventName);
 
-      try {
-        if (eventConfig?.listeners.dlqHandler) {
-          await eventConfig.listeners.dlqHandler(context);
-        }
-
-        if (this.middlewares) {
-          for (const middleware of this.middlewares) {
-            if (middleware.onDeadLetter) {
-              await middleware.onDeadLetter(context);
-            }
+      for (const middleware of this.middlewares) {
+        if (middleware.onDeadLetter) {
+          try {
+            await middleware.onDeadLetter(context);
+          } catch (error) {
+            this.logger.error(`Error invoking onDeadLetter middleware for event ${event.eventName} (id: ${event.id}): ${error}`);
           }
         }
-      } catch (error) {
-        this.logger.error(`Error invoking DLQ handler for event ${event.eventName} (id: ${event.id}): ${error}`);
       }
     }
   }
