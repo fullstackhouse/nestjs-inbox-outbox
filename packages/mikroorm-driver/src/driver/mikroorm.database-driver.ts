@@ -6,7 +6,7 @@ export interface MikroORMDatabaseDriverOptions {
   clearAfterFlush?: boolean;
 }
 
-const DEFAULT_MAX_RETRIES = 5;
+const DEFAULT_MAX_RETRIES = 10;
 
 export class MikroORMDatabaseDriver implements DatabaseDriver {
   private readonly clearAfterFlush: boolean;

@@ -2,7 +2,7 @@ import { DatabaseDriver, EventConfigurationResolverContract, OutboxTransportEven
 import { DataSource, LessThanOrEqual } from 'typeorm';
 import { TypeOrmOutboxTransportEvent } from '../model/typeorm-outbox-transport-event.model';
 
-const DEFAULT_MAX_RETRIES = 5;
+const DEFAULT_MAX_RETRIES = 10;
 
 export class TypeORMDatabaseDriver implements DatabaseDriver {
   private entitiesToPersist: object[] = [];

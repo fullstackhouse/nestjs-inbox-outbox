@@ -170,7 +170,7 @@ export class AppModule {}
 | `name` | Event class name |
 | `listeners.retentionPeriod` | How long events are retained before expiring (ms) |
 | `listeners.maxExecutionTime` | Max listener execution time before timeout (ms) |
-| `listeners.maxRetries` | Max retry attempts before moving to DLQ (default: 5) |
+| `listeners.maxRetries` | Max retry attempts before moving to DLQ (default: 10) |
 | `listeners.retryStrategy` | Optional function `(retryCount) => delayMs` for custom backoff. Default: exponential backoff with 1s base, 60s max |
 
 ### Module Options
