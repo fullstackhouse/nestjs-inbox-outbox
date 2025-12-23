@@ -92,14 +92,21 @@ export class RetryableOutboxEventPoller implements OnModuleInit, OnModuleDestroy
       const maxEventsPerPoll = this.options.maxEventsPerPoll;
       const databaseDriver = this.databaseDriverFactory.create(this.eventConfigurationResolver);
 
-      const { pendingEvents, deadLetteredEvents } = await databaseDriver.findAndExtendReadyToRetryEvents(maxEventsPerPoll);
+      while (!this.isShuttingDown) {
+        const { pendingEvents, deadLetteredEvents } = await databaseDriver.findAndExtendReadyToRetryEvents(maxEventsPerPoll);
 
-      if (deadLetteredEvents.length > 0) {
-        await this.invokeDeadLetterHandlers(deadLetteredEvents);
-      }
+        if (deadLetteredEvents.length > 0) {
+          await this.invokeDeadLetterHandlers(deadLetteredEvents);
+        }
 
-      if (pendingEvents.length > 0) {
-        await this.processAsynchronousRetryableEvents(pendingEvents);
+        if (pendingEvents.length > 0) {
+          await this.processAsynchronousRetryableEvents(pendingEvents);
+        }
+
+        const totalFetched = pendingEvents.length + deadLetteredEvents.length;
+        if (totalFetched < maxEventsPerPoll) {
+          break;
+        }
       }
     } catch (exception) {
       this.logger.error(exception);
