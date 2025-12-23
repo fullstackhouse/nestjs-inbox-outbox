@@ -259,4 +259,138 @@ describe('RetryableOutboxEventPoller', () => {
       await poller.onModuleDestroy();
     });
   });
+
+  describe('continuous polling within single poll cycle', () => {
+    it('should fetch events in batches until fewer than maxEventsPerPoll are returned', async () => {
+      outboxOptions.maxEventsPerPoll = 2;
+
+      const createEvent = (id: number) => ({
+        id,
+        eventName: 'testEvent',
+        eventPayload: {},
+        deliveredToListeners: [],
+        attemptAt: Date.now(),
+        expireAt: Date.now() + 1000,
+        insertedAt: Date.now(),
+        retryCount: 0,
+        status: 'pending' as const,
+      });
+
+      (mockedDriver.findAndExtendReadyToRetryEvents as Mock)
+        .mockResolvedValueOnce({ pendingEvents: [createEvent(1), createEvent(2)], deadLetteredEvents: [] })
+        .mockResolvedValueOnce({ pendingEvents: [createEvent(3), createEvent(4)], deadLetteredEvents: [] })
+        .mockResolvedValueOnce({ pendingEvents: [createEvent(5)], deadLetteredEvents: [] });
+
+      const poller = createPoller();
+      await poller.poolRetryableEvents();
+
+      expect(mockedDriver.findAndExtendReadyToRetryEvents).toHaveBeenCalledTimes(3);
+      expect(mockOutboxEventProcessor.process).toHaveBeenCalledTimes(5);
+    });
+
+    it('should stop fetching when no events are returned', async () => {
+      outboxOptions.maxEventsPerPoll = 2;
+
+      const createEvent = (id: number) => ({
+        id,
+        eventName: 'testEvent',
+        eventPayload: {},
+        deliveredToListeners: [],
+        attemptAt: Date.now(),
+        expireAt: Date.now() + 1000,
+        insertedAt: Date.now(),
+        retryCount: 0,
+        status: 'pending' as const,
+      });
+
+      (mockedDriver.findAndExtendReadyToRetryEvents as Mock)
+        .mockResolvedValueOnce({ pendingEvents: [createEvent(1), createEvent(2)], deadLetteredEvents: [] })
+        .mockResolvedValueOnce({ pendingEvents: [], deadLetteredEvents: [] });
+
+      const poller = createPoller();
+      await poller.poolRetryableEvents();
+
+      expect(mockedDriver.findAndExtendReadyToRetryEvents).toHaveBeenCalledTimes(2);
+      expect(mockOutboxEventProcessor.process).toHaveBeenCalledTimes(2);
+    });
+
+    it('should count both pending and dead lettered events for batch size calculation', async () => {
+      outboxOptions.maxEventsPerPoll = 3;
+
+      const createPendingEvent = (id: number) => ({
+        id,
+        eventName: 'testEvent',
+        eventPayload: {},
+        deliveredToListeners: [],
+        attemptAt: Date.now(),
+        expireAt: Date.now() + 1000,
+        insertedAt: Date.now(),
+        retryCount: 0,
+        status: 'pending' as const,
+      });
+
+      const createDeadLetteredEvent = (id: number) => ({
+        id,
+        eventName: 'testEvent',
+        eventPayload: {},
+        deliveredToListeners: [],
+        attemptAt: null,
+        expireAt: Date.now() + 1000,
+        insertedAt: Date.now(),
+        retryCount: 5,
+        status: 'failed' as const,
+      });
+
+      (mockedDriver.findAndExtendReadyToRetryEvents as Mock)
+        .mockResolvedValueOnce({ pendingEvents: [createPendingEvent(1)], deadLetteredEvents: [createDeadLetteredEvent(2), createDeadLetteredEvent(3)] })
+        .mockResolvedValueOnce({ pendingEvents: [createPendingEvent(4)], deadLetteredEvents: [] });
+
+      const poller = createPoller();
+      await poller.poolRetryableEvents();
+
+      expect(mockedDriver.findAndExtendReadyToRetryEvents).toHaveBeenCalledTimes(2);
+    });
+
+    it('should stop polling when shutdown is initiated during batch processing', async () => {
+      vi.useRealTimers();
+      outboxOptions.maxEventsPerPoll = 2;
+
+      const createEvent = (id: number) => ({
+        id,
+        eventName: 'testEvent',
+        eventPayload: {},
+        deliveredToListeners: [],
+        attemptAt: Date.now(),
+        expireAt: Date.now() + 1000,
+        insertedAt: Date.now(),
+        retryCount: 0,
+        status: 'pending' as const,
+      });
+
+      let resolveFirstBatch: () => void;
+      const firstBatchPromise = new Promise<void>((resolve) => {
+        resolveFirstBatch = resolve;
+      });
+
+      (mockedDriver.findAndExtendReadyToRetryEvents as Mock)
+        .mockImplementationOnce(async () => {
+          await firstBatchPromise;
+          return { pendingEvents: [createEvent(1), createEvent(2)], deadLetteredEvents: [] };
+        })
+        .mockResolvedValue({ pendingEvents: [createEvent(3), createEvent(4)], deadLetteredEvents: [] });
+
+      const poller = createPoller();
+
+      const pollPromise = poller.poolRetryableEvents();
+
+      await poller.onModuleDestroy();
+      resolveFirstBatch!();
+
+      await pollPromise;
+
+      expect(mockedDriver.findAndExtendReadyToRetryEvents).toHaveBeenCalledTimes(1);
+
+      vi.useFakeTimers();
+    });
+  });
 });
