@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, afterEach, afterAll } from 'vitest';
 import { MikroORM } from '@mikro-orm/core';
 import {
   TransactionalEventEmitter,
@@ -8,6 +8,7 @@ import {
 } from '@fullstackhouse/nestjs-outbox';
 import { MikroOrmOutboxTransportEvent } from '../model/mikroorm-outbox-transport-event.model';
 import { createTestApp, cleanupTestApp, TestContext } from './test-utils';
+import { benchmarkReporter } from './benchmark-reporter';
 
 class BenchmarkEvent extends OutboxEvent {
   public readonly name = 'BenchmarkEvent';
@@ -50,6 +51,12 @@ describe('Outbox Benchmark Tests (PostgreSQL)', () => {
   afterEach(async () => {
     if (context) {
       await cleanupTestApp(context);
+    }
+  });
+
+  afterAll(async () => {
+    if (process.env.BENCHMARK_OUTPUT_PATH) {
+      await benchmarkReporter.saveReport();
     }
   });
 
@@ -110,12 +117,25 @@ describe('Outbox Benchmark Tests (PostgreSQL)', () => {
       const processEndTime = performance.now();
       const processDurationMs = processEndTime - processStartTime;
 
+      const emitEventsPerSecond = (eventCount / emitDurationMs) * 1000;
+      const processEventsPerSecond = (eventCount / processDurationMs) * 1000;
+
       console.log(`[Parallel Event Emission] ${eventCount} events with ${listenerCount} listeners`);
       console.log(`  Emit duration: ${emitDurationMs.toFixed(2)}ms`);
       console.log(`  Process duration: ${processDurationMs.toFixed(2)}ms`);
-      console.log(`  Events per second (emit): ${((eventCount / emitDurationMs) * 1000).toFixed(2)}`);
-      console.log(`  Events per second (process): ${((eventCount / processDurationMs) * 1000).toFixed(2)}`);
+      console.log(`  Events per second (emit): ${emitEventsPerSecond.toFixed(2)}`);
+      console.log(`  Events per second (process): ${processEventsPerSecond.toFixed(2)}`);
       console.log(`  Total listener calls: ${processedCount}`);
+
+      benchmarkReporter.record('Parallel Event Emission', {
+        durationMs: processDurationMs,
+        eventsPerSecond: processEventsPerSecond,
+        eventCount,
+        listenerCount,
+        totalListenerCalls: processedCount,
+        emitDurationMs,
+        emitEventsPerSecond,
+      });
 
       expect(processedCount).toBe(eventCount * listenerCount);
     });
@@ -173,11 +193,23 @@ describe('Outbox Benchmark Tests (PostgreSQL)', () => {
 
       const processEndTime = performance.now();
 
+      const emitDurationMs = emitEndTime - emitStartTime;
+      const totalDurationMs = processEndTime - emitStartTime;
+
       console.log(`[Sequential Batch Emission] ${batchCount} batches of ${eventsPerBatch} events`);
       console.log(`  Total events: ${totalEvents}`);
-      console.log(`  Emit duration: ${(emitEndTime - emitStartTime).toFixed(2)}ms`);
-      console.log(`  Total duration (including processing): ${(processEndTime - emitStartTime).toFixed(2)}ms`);
-      console.log(`  Avg time per batch: ${((emitEndTime - emitStartTime) / batchCount).toFixed(2)}ms`);
+      console.log(`  Emit duration: ${emitDurationMs.toFixed(2)}ms`);
+      console.log(`  Total duration (including processing): ${totalDurationMs.toFixed(2)}ms`);
+      console.log(`  Avg time per batch: ${(emitDurationMs / batchCount).toFixed(2)}ms`);
+
+      benchmarkReporter.record('Sequential Batch Emission', {
+        durationMs: totalDurationMs,
+        eventsPerSecond: (totalEvents / totalDurationMs) * 1000,
+        eventCount: totalEvents,
+        batchCount,
+        eventsPerBatch,
+        emitDurationMs,
+      });
 
       expect(processedCount).toBe(totalEvents);
     });
@@ -237,10 +269,20 @@ describe('Outbox Benchmark Tests (PostgreSQL)', () => {
       const endTime = performance.now();
       const durationMs = endTime - startTime;
 
+      const eventsPerSecond = (eventCount / durationMs) * 1000;
+
       console.log(`[Parallel Event Processing] ${eventCount} events with ${listenerCount} listeners`);
       console.log(`  Total duration: ${durationMs.toFixed(2)}ms`);
-      console.log(`  Events per second: ${((eventCount / durationMs) * 1000).toFixed(2)}`);
+      console.log(`  Events per second: ${eventsPerSecond.toFixed(2)}`);
       console.log(`  Avg time per event: ${(durationMs / eventCount).toFixed(2)}ms`);
+
+      benchmarkReporter.record('Parallel Event Processing', {
+        durationMs,
+        eventsPerSecond,
+        eventCount,
+        listenerCount,
+        avgTimePerEventMs: durationMs / eventCount,
+      });
 
       for (let i = 0; i < listenerCount; i++) {
         expect(handledCounts[i]).toBe(eventCount);
@@ -364,6 +406,15 @@ describe('Outbox Benchmark Tests (PostgreSQL)', () => {
       console.log(`  Total duration: ${durationMs.toFixed(2)}ms`);
       console.log(`  Total failure attempts: ${failureCount}`);
       console.log(`  Avg failures per event: ${(failureCount / dlqEventCount).toFixed(2)}`);
+
+      benchmarkReporter.record('DLQ Events Handling', {
+        durationMs,
+        eventsPerSecond: (dlqEventCount / durationMs) * 1000,
+        eventCount: dlqEventCount,
+        maxRetries,
+        totalFailureAttempts: failureCount,
+        avgFailuresPerEvent: failureCount / dlqEventCount,
+      });
 
       const em = orm.em.fork();
       const failedEvents = await em.find(MikroOrmOutboxTransportEvent, {
@@ -506,6 +557,14 @@ describe('Outbox Benchmark Tests (PostgreSQL)', () => {
       console.log(`[Event Retries] ${eventCount} events with up to ${maxRetries} retries`);
       console.log(`  Total duration: ${durationMs.toFixed(2)}ms`);
       console.log(`  Avg time per event (including retries): ${(durationMs / eventCount).toFixed(2)}ms`);
+
+      benchmarkReporter.record('Event Retries', {
+        durationMs,
+        eventsPerSecond: (eventCount / durationMs) * 1000,
+        eventCount,
+        maxRetries,
+        avgTimePerEventMs: durationMs / eventCount,
+      });
 
       for (const [, count] of attemptCounts) {
         expect(count).toBe(2);
@@ -661,11 +720,26 @@ describe('Outbox Benchmark Tests (PostgreSQL)', () => {
 
       const processEndTime = performance.now();
 
+      const emitDurationMs = emitEndTime - emitStartTime;
+      const processDurationMs = processEndTime - processStartTime;
+      const totalEvents = successEventCount + failingEventCount;
+
       console.log(`[Combined Load Test] ${successEventCount} success + ${failingEventCount} failing events`);
-      console.log(`  Emit duration: ${(emitEndTime - emitStartTime).toFixed(2)}ms`);
-      console.log(`  Process duration: ${(processEndTime - processStartTime).toFixed(2)}ms`);
+      console.log(`  Emit duration: ${emitDurationMs.toFixed(2)}ms`);
+      console.log(`  Process duration: ${processDurationMs.toFixed(2)}ms`);
       console.log(`  Total successful processed: ${processedSuccessCount}`);
       console.log(`  Total failing attempts: ${failingAttempts}`);
+
+      benchmarkReporter.record('Combined Load Test', {
+        durationMs: processDurationMs,
+        eventsPerSecond: (totalEvents / processDurationMs) * 1000,
+        eventCount: totalEvents,
+        successEventCount,
+        failingEventCount,
+        emitDurationMs,
+        processedSuccessCount,
+        failingAttempts,
+      });
 
       expect(processedSuccessCount).toBe(successEventCount);
       // Failing events should have been attempted at least once (could be more with retries)
